@@ -122,6 +122,8 @@ ul.h li:first-child{border-top:0}
 .tabs button{flex:1;border:0;background:none;color:var(--mut);font:600 15px Barlow,system-ui,sans-serif;padding:10px;border-radius:9px;cursor:pointer}
 .tabs button.on{background:var(--acc);color:#fff}
 .auth form{display:flex;flex-direction:column;gap:12px}
+.cred{margin:18px 0 4px;text-align:center;font-size:13px;color:var(--mut)}
+.cred b{color:var(--ink);font-weight:600}
 .lnk{align-self:flex-start;border:0;background:none;color:var(--mut);font:500 14px Barlow,system-ui,sans-serif;padding:4px 0;cursor:pointer;text-decoration:underline}
 </style>
 </head>
@@ -138,6 +140,7 @@ ul.h li:first-child{border-top:0}
     <button class="btn pri" id="bAuth" type="submit">Entrar</button>
   </form>
   <p class="small mut">Cada conta vê somente os próprios equipamentos e calibrações.</p>
+  <p class="cred">Desenvolvido por <b>Jeferson Rodrigo dos Santos</b></p>
 </section>
 <main id="app" hidden>
   <header class="top">
@@ -152,6 +155,7 @@ ul.h li:first-child{border-top:0}
     <div id="meInfo"></div>
     <div class="mact"><button class="btn pri" id="perfBtn" type="button">Meu perfil e relatórios</button><button class="btn" id="expBtn" type="button">Exportar tudo (CSV)</button><button class="btn" id="bkBtn" type="button">Backup</button><button class="btn" id="rsBtn" type="button">Importar backup</button><button class="btn" id="outBtn" type="button">Sair</button><input type="file" id="rsFile" accept=".json,application/json" hidden></div>
   </section>
+  <p class="cred" id="credHome">App Calibração de balanças · Desenvolvido por <b>Jeferson Rodrigo dos Santos</b></p>
   <div id="catv" hidden>
   <nav class="chips" id="chips"></nav>
   <p class="mut small" id="legDias"></p>
@@ -580,7 +584,7 @@ function renderHome(){
 }
 function showView(){
   const h=!cat;
-  $('#home').hidden=!h;$('#me').hidden=!h;$('#catv').hidden=h;$('#bBack').hidden=h;$('#bNew').hidden=h||cat==='sem';
+  $('#home').hidden=!h;$('#me').hidden=!h;$('#credHome').hidden=!h;$('#catv').hidden=h;$('#bBack').hidden=h;$('#bNew').hidden=h||cat==='sem';
   $('#ttl').textContent=h?'Calibração de balanças':CATS[cat];
   $('#sub').textContent=h?'Escolha o tipo de balança':'Prazo por farol e histórico de erros';
 }
@@ -938,6 +942,7 @@ function buildPdf(s,c){
   if(r.pr==='np'){d.text('Total calculado = (velocidade nominal x peso padrão x tempo de volta) / comprimento da mesa.',15,y);y+=4.5;d.text('Erro (%) = (total inserido - total calculado) / total calculado x 100.',15,y);if(!pu){y+=4.5;d.text('Erro final: total calculado = (velocidade nova x peso padrão x tempo de volta novo) / comprimento da mesa, comparado com a última totalização.',15,y)}}else{
   d.text('Velocidade = comprimento da correia / tempo de volta. Fluxo = (velocidade x peso padrão x 3,6) / comprimento da mesa.',15,y);y+=4.5;
   d.text(dos?'Erro (%) = (fluxo encontrado / fluxo pedido - 1) x 100.':'Erro (%) = (tempo encontrado / tempo pedido - 1) x 100.',15,y)}
+  if(d.getNumberOfPages&&d.setPage){const np=d.getNumberOfPages();for(let i=1;i<=np;i++){d.setPage(i);d.setFont('helvetica','normal');d.setFontSize(8);d.setTextColor(120,128,136);d.text('App Calibração de balanças - desenvolvido por Jeferson Rodrigo dos Santos'+(np>1?'   |   página '+i+' de '+np:''),15,290)}d.setTextColor(0,0,0)}
   return{d,name:'calibracao-'+s.nome.replace(/[^\w-]+/g,'_')+'-'+c.data+'.pdf'};
 }
 function savePdf(s,c){const p=c&&buildPdf(s,c);if(p)saveFile(p.name,p.d.output('blob'))}

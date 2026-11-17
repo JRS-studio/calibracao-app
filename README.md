@@ -14,3 +14,6 @@ Cada conta vê somente os próprios equipamentos e calibrações.
 
 ## Como o APK é gerado
 A cada mudança na branch `main`, o GitHub Actions (`.github/workflows/apk.yml`) monta o app com Capacitor, assina e publica o APK em Releases.
+
+## Desenvolvedor
+Desenvolvido por **Jeferson Rodrigo dos Santos**.
