@@ -31,7 +31,7 @@ jobs:
       - name: Criar projeto Android
         run: |
           npx cap add android
-          npx @capacitor/assets generate --android --iconBackgroundColor '#1f5c8b' --splashBackgroundColor '#1f5c8b'
+          npx @capacitor/assets generate --android --iconBackgroundColor '#0b1a2b' --splashBackgroundColor '#081220'
           npx cap sync android
 
       - name: Versão
@@ -54,7 +54,7 @@ jobs:
           if [ -n "$KS_B64" ]; then
             echo "$KS_B64" | base64 -d > chave.jks
           else
-            echo "::warning::Sem os segredos KEYSTORE_BASE64 e KEYSTORE_PASSWORD: APK assinado com chave provisória"
+            echo "::warning::Segredo KEYSTORE_BASE64 ausente: usando chave temporária (atualizações exigirão reinstalar)"
             KS_PASS=temporaria123
             keytool -genkeypair -keystore chave.jks -storepass $KS_PASS -keypass $KS_PASS -alias app -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Calibracao"
           fi
