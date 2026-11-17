@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calibração de balanças</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1f5c8b">
+<meta name="description" content="Controle de calibração de balanças dosadoras e de fluxo: calibração guiada, farol de vencimento e relatório em PDF.">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="jspdf.umd.min.js" onerror="var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';document.head.appendChild(s)"></script>
+<style>
+:root{--bg:#edf0f3;--card:#fff;--ink:#14202b;--mut:#5b6976;--line:#d3dae1;--acc:#1f5c8b;--g:#23844a;--y:#f2b705;--r:#c92f27;--ci:#1f5aa6;--cf:#b0285f;--ok:#23844a;--nok:#c92f27;--in:#f6f8fa;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0f161d;--card:#18212a;--ink:#e8edf2;--mut:#93a1ae;--line:#2b3742;--acc:#6db2e8;--ci:#4b8fe2;--cf:#d9547f;--ok:#3aa866;--nok:#ef6159;--in:#121a21}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0f161d;--card:#18212a;--ink:#e8edf2;--mut:#93a1ae;--line:#2b3742;--acc:#6db2e8;--ci:#4b8fe2;--cf:#d9547f;--ok:#3aa866;--nok:#ef6159;--in:#121a21}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.4 Barlow,system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1000px;margin:0 auto;padding:16px}
+h1,h2,h3{margin:0;font-family:"Barlow Condensed",Barlow,system-ui,sans-serif;font-weight:700;letter-spacing:.01em}
+h1{font-size:30px;line-height:1.05}h2{font-size:24px}h3{font-size:20px}
+p{margin:0}.mut{color:var(--mut)}.small{font-size:14px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.btn{font:600 15px Barlow,system-ui,sans-serif;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:10px 14px;cursor:pointer}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+:root[data-theme="dark"] .btn.pri,:root:not([data-theme="light"]) .btn.pri{color:#0b1218}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]) .btn.pri{color:#fff}}
+.btn:focus-visible,.chip:focus-visible,.card:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.note{background:var(--card);border:1px solid var(--y);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:14px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.chip{display:flex;align-items:center;gap:7px;font:500 15px Barlow,system-ui,sans-serif;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:7px 13px;cursor:pointer}
+.chip.on{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+.dot.g,.tl i.g{background:var(--g)}.dot.y,.tl i.y{background:var(--y)}.dot.r,.tl i.r{background:var(--r)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;margin-top:14px}
+.card{display:flex;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer}
+.card:hover{border-color:var(--acc)}
+.cb{min-width:0;display:flex;flex-direction:column;gap:3px}
+.cb h3{overflow-wrap:anywhere}
+.tl{flex:none;display:flex;flex-direction:column;gap:4px;padding:5px;background:#1b232b;border-radius:10px;align-self:flex-start}
+.tl i{width:16px;height:16px;border-radius:50%;opacity:.16}
+.tl[data-k="r"] i.r{opacity:1;box-shadow:0 0 9px 2px var(--r)}
+.tl[data-k="y"] i.y{opacity:1;box-shadow:0 0 9px 2px var(--y)}
+.tl[data-k="g"] i.g{opacity:1;box-shadow:0 0 9px 2px var(--g)}
+.tl.big i{width:24px;height:24px}
+.st{display:inline-block;align-self:flex-start;padding:2px 10px;border-radius:99px;font-weight:600;font-size:14px;margin:3px 0}
+.st.g{background:var(--g);color:#fff}.st.y{background:var(--y);color:#1b1400}.st.r{background:var(--r);color:#fff}
+.pend{align-self:flex-start;border:1px solid var(--mut);border-radius:6px;padding:0 7px;font-weight:500}
+[hidden]{display:none!important}
+.swc{display:flex;flex-direction:column;align-items:center;gap:10px;background:var(--in);border:1px solid var(--line);border-radius:12px;padding:16px}
+.swd{font:600 46px/1 Barlow,system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.5px}
+.swbig{width:100%;min-height:56px;font-size:18px}
+.swb{margin-top:6px;min-height:44px;width:100%}
+.btn.run{background:var(--r)!important;border-color:var(--r)!important;color:#fff!important}
+.tcc{display:flex;flex-direction:column;gap:8px;background:var(--in);border:1px solid var(--line);border-left:4px solid var(--y);border-radius:12px;padding:14px;margin-top:4px}
+.tcc label{display:flex;flex-direction:column;gap:3px;font-size:14px;color:var(--mut)}
+.tcc p{margin:4px 0 0}
+.f3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:4px}
+.f3 label{display:flex;flex-direction:column;gap:3px;font-size:14px;color:var(--mut)}
+.btn:disabled{opacity:.55;cursor:default}
+body:not([data-role="admin"]) .adm{display:none!important}
+.sync{display:flex;align-items:center;gap:8px;border:0;background:none;color:var(--mut);font:500 14px Barlow,system-ui,sans-serif;padding:0 0 12px;cursor:pointer;text-align:left}
+.sync i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--g)}
+.sync.pend i{background:var(--y)}.sync.off i{background:var(--r)}
+.fl{display:flex;flex-direction:column;gap:3px;font-size:14px;color:var(--mut)}
+.me{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center}
+.me h2{margin-bottom:2px}
+.mact{display:flex;gap:10px;flex-wrap:wrap}
+a.btn{text-decoration:none;display:inline-block;text-align:center}
+.res{background:var(--in);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;font-size:15px}
+.res b{font-size:18px;white-space:nowrap}.res b.bn{font-size:26px;color:var(--acc)}
+.stp{font-size:14px;color:var(--mut)}
+.wb{display:flex;gap:10px}.wb .btn{flex:1}
+.chk{display:flex;flex-direction:row;gap:10px;align-items:center;font-size:16px;color:var(--ink);padding:6px 0}
+.chk input{width:22px;height:22px;flex:none}
+.hint{border-left:4px solid var(--y);padding:6px 10px;background:var(--in);border-radius:6px}
+table.sm{width:100%;border-collapse:collapse;font-size:14px}table.sm td{padding:5px 0;border-top:1px solid var(--line)}table.sm td:last-child{text-align:right;font-weight:600}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:8px}
+.tile{display:flex;flex-direction:column;gap:6px;text-align:left;font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;cursor:pointer;min-height:160px}
+.tile:hover{border-color:var(--acc)}
+.tile:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.tile h2{font-size:30px}
+.tile .cnt{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:15px;margin-top:auto;padding-top:14px}
+.tile .cnt span{display:flex;align-items:center;gap:6px}
+#bBack{font-size:16px;margin-bottom:4px}
+.tp{display:block;margin:4px 0}
+select{font:inherit;color:var(--ink);background:var(--in);border:1px solid var(--line);border-radius:8px;padding:4px 6px}
+.empty{grid-column:1/-1;text-align:center;padding:36px 12px;color:var(--mut)}
+dialog{width:min(640px,100%);max-width:100%;max-height:92dvh;border:0;border-radius:16px;padding:0;background:var(--bg);color:var(--ink);overflow:auto}
+dialog::backdrop{background:rgba(8,14,20,.6)}
+@media(max-width:600px){dialog{margin:auto 0 0;border-radius:16px 16px 0 0;max-height:94dvh}}
+.sheet{padding:16px 16px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+.sh{display:flex;gap:14px;align-items:flex-start}
+.sh>div{flex:1;min-width:0}
+.x{margin-left:auto;font-size:26px;line-height:1;border:0;background:none;color:var(--mut);cursor:pointer;padding:4px 8px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.box h3{margin-bottom:8px}
+.leg{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;margin-bottom:4px}
+.leg span::before{content:"";display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-1px}
+.leg .a::before{background:var(--ci);border-radius:3px}.leg .b::before{background:var(--cf);border-radius:3px}.leg .ok::before{background:var(--ok);border-radius:3px}.leg .nok::before{background:var(--nok);border-radius:3px}.leg .lim::before{width:18px;height:0;border-top:2px dashed var(--mut);vertical-align:4px}
+.av{background:var(--in);border:1px solid var(--line);border-left:4px solid var(--mut);border-radius:8px;padding:9px 12px;font-size:15px;display:flex;flex-direction:column;gap:8px}.av.g{border-left-color:var(--g)}.av.r{border-left-color:var(--r)}.av .btn{align-self:flex-start;text-decoration:none}
+.chart{display:flex;align-items:flex-start;margin-top:6px}.chart .yax{flex:none}.cscroll{overflow-x:auto;flex:1;min-width:0;-webkit-overflow-scrolling:touch}.chart svg{display:block;width:auto;height:auto;max-width:none}
+.chart .bar{transition:opacity .15s}.chart .bar:hover{opacity:.82}
+svg{display:block;width:100%;height:auto}
+.f{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.f label{display:flex;flex-direction:column;gap:3px;font-size:14px;color:var(--mut)}
+.f .w{grid-column:1/-1}
+input,textarea{font:400 16px Barlow,system-ui,sans-serif;color:var(--ink);background:var(--in);border:1px solid var(--line);border-radius:9px;padding:9px 10px;width:100%}
+textarea{min-height:64px;resize:vertical}
+ul.h{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+ul.h li{padding:10px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+ul.h li:first-child{border-top:0}
+.hr{display:flex;justify-content:space-between;gap:10px}
+.auth{max-width:440px;margin:0 auto;padding:max(28px,6vh) 16px 32px;display:flex;flex-direction:column;gap:16px}
+.auth .logo{width:72px;height:72px;border-radius:18px}
+.tabs{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+.tabs button{flex:1;border:0;background:none;color:var(--mut);font:600 15px Barlow,system-ui,sans-serif;padding:10px;border-radius:9px;cursor:pointer}
+.tabs button.on{background:var(--acc);color:#fff}
+.auth form{display:flex;flex-direction:column;gap:12px}
+.lnk{align-self:flex-start;border:0;background:none;color:var(--mut);font:500 14px Barlow,system-ui,sans-serif;padding:4px 0;cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body data-role="admin">
+<section id="auth" class="auth" hidden>
+  <img class="logo" src="icon-192.png" alt="">
+  <div><h1>Calibração de balanças</h1><p class="mut">Calibração guiada de balanças dosadoras e de fluxo, farol de vencimento e relatório em PDF.</p></div>
+  <div class="tabs" role="tablist"><button type="button" id="tabE" class="on">Entrar</button><button type="button" id="tabC">Criar conta</button></div>
+  <form id="fAuth" class="box">
+    <label class="fl cad" hidden>Seu nome<input name="nome" maxlength="80" autocomplete="name"></label>
+    <label class="fl cad" hidden>Empresa ou área (opcional)<input name="empresa" maxlength="80" autocomplete="organization"></label>
+    <label class="fl">E-mail (é o seu login)<input name="email" type="email" required autocomplete="email" inputmode="email"></label>
+    <label class="fl">Senha<input name="senha" type="password" required minlength="6" autocomplete="current-password"></label>
+    <p class="small" id="authMsg" style="color:var(--r)" role="status"></p>
+    <button class="btn pri" id="bAuth" type="submit">Entrar</button>
+  </form>
+  <p class="small mut">Cada conta vê somente os próprios equipamentos e calibrações.</p>
+</section>
+<main id="app" hidden>
+  <header class="top">
+    <div><button class="lnk" id="bBack" hidden>← Início</button><h1 id="ttl">Calibração de balanças</h1><p class="mut" id="sub">Escolha o tipo de balança</p></div>
+    <button class="btn pri adm" id="bNew" hidden>Nova balança</button>
+  </header>
+  <button id="sync" class="sync" type="button" hidden></button>
+  <div id="note" class="note" hidden></div>
+  <section id="home" class="tiles"></section>
+  <section id="me" class="me">
+    <div id="meInfo"></div>
+    <div class="mact"><button class="btn pri" id="perfBtn" type="button">Meu perfil e relatórios</button><button class="btn" id="expBtn" type="button">Exportar tudo (CSV)</button><button class="btn" id="bkBtn" type="button">Backup</button><button class="btn" id="rsBtn" type="button">Importar backup</button><button class="btn" id="outBtn" type="button">Sair</button><input type="file" id="rsFile" accept=".json,application/json" hidden></div>
+  </section>
+  <div id="catv" hidden>
+  <nav class="chips" id="chips"></nav>
+  <p class="mut small" id="legDias"></p>
+  <section id="list" class="grid"></section>
+  </div>
+</main>
+
+<dialog id="dPerf">
+  <form id="fPerf" class="sheet f" style="display:grid">
+    <div class="w sh"><h2>Meu perfil e relatórios</h2><button type="button" class="x" data-close aria-label="Fechar">×</button></div>
+    <p class="w hint" id="perfIntro">Bem-vindo! Informe para onde os relatórios devem ir. Você pode mudar quando quiser.</p>
+    <label>Seu nome<input name="nome" maxlength="80" autocomplete="name"></label>
+    <label>Cargo<input name="cargo" maxlength="80"></label>
+    <label class="w">Empresa ou área<input name="empresa" maxlength="80"></label>
+    <label>E-mail que recebe os relatórios<input name="email_relatorio" type="email" maxlength="120" inputmode="email"></label>
+    <label>WhatsApp que recebe os relatórios<input name="whatsapp" inputmode="tel" maxlength="20" placeholder="DDD + número"></label>
+    <label>Tolerância da dosadora (±%)<input name="tol_dos" inputmode="decimal" required></label>
+    <label>Tolerância da balança de fluxo (±%)<input name="tol_flu" inputmode="decimal" required></label>
+    <label>Farol amarelo a partir de (dias)<input name="dias_amarelo" type="number" min="1" max="3650" required></label>
+    <label>Vencida a partir de (dias)<input name="dias_vermelho" type="number" min="2" max="3650" required></label>
+    <p class="w small" id="perfMsg" style="color:var(--r)"></p>
+    <button class="btn pri w" type="submit">Salvar</button>
+  </form>
+</dialog>
+
+<dialog id="dWiz"><div class="sheet" id="wBody"></div></dialog>
+
+<dialog id="dNew">
+  <form id="fNew" class="sheet f" style="display:grid">
+    <div class="w sh"><h2 id="hNew">Nova balança</h2><button type="button" class="x" data-close aria-label="Fechar">×</button></div>
+    <label class="w">Identificação (nome ou TAG)<input name="nome" required maxlength="80" autocomplete="off"></label>
+    <label class="w">Local<input name="local" maxlength="80" autocomplete="off"></label>
+    
+    <button class="btn pri w" type="submit">Salvar balança</button>
+  </form>
+</dialog>
+
+<dialog id="dSc">
+  <div class="sheet">
+    <div class="sh" id="dHead"></div>
+    <div class="box"><h3>Histórico de erro</h3>
+      <div id="dChart"></div>
+    </div>
+    <div class="box" id="bWiz" hidden><h3>Calibração guiada</h3><p class="mut small">Passo a passo com cálculo automático e relatório em PDF.</p><div class="wb" style="margin-top:10px"><button class="btn pri" id="bWizGo"></button><button class="btn" id="bWizDel" hidden>Descartar</button></div></div>
+    <div class="box"><h3>Pendências</h3>
+      <form id="fPend" class="f">
+        <label class="w">Pendências mecânicas<textarea id="pm" maxlength="800"></textarea></label>
+        <label class="w">Pendências operacionais<textarea id="po" maxlength="800"></textarea></label>
+        <button class="btn pri w" type="submit">Salvar pendências</button>
+      </form>
+    </div>
+    <div class="box"><h3>Registrar calibração</h3>
+      <form id="fCal" class="f">
+        <label>Data da calibração<input type="date" name="data" required></label>
+        <label>Número da O.S.<input name="os" required maxlength="30" autocomplete="off"></label>
+        <label>Erro inicial (%)<input name="ei" inputmode="decimal" required placeholder="0,00"></label>
+        <label>Erro final (%)<input name="ef" inputmode="decimal" required placeholder="0,00"></label>
+        <label>Executante 1<input name="e1" required maxlength="60" list="nomes" autocomplete="off"></label>
+        <label>Executante 2<input name="e2" required maxlength="60" list="nomes" autocomplete="off"></label>
+        <label class="w">Observações<textarea name="obs" maxlength="500"></textarea></label>
+        <button class="btn pri w" type="submit">Registrar calibração</button>
+      </form>
+      <div id="calAv" style="margin-top:10px"></div>
+      <datalist id="nomes"></datalist>
+    </div>
+    <div class="box"><h3>Calibrações anteriores</h3><ul class="h" id="dHist"></ul></div>
+    <button class="btn" data-close>Fechar</button>
+  </div>
+</dialog>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const pd=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
+const fd=s=>s.split('-').reverse().join('/');
+const daysSince=s=>{const n=new Date();return Math.round((new Date(n.getFullYear(),n.getMonth(),n.getDate())-pd(s))/864e5)};
+const num=v=>Number(v).toLocaleString('pt-BR',{maximumFractionDigits:4});
+const pl=n=>n+' dia'+(n===1?'':'s');
+const clone=o=>JSON.parse(JSON.stringify(o));
+/* tolerância do erro (%): dentro quando o valor absoluto for menor que o limite */
+const TOL={dos:0.5,flu:1};
+const tolTxt=tp=>'±'+String(TOL[tp]).replace('.',',')+' %';
+const dentro=(tp,v)=>TOL[tp]!=null&&isFinite(v)&&Math.abs(v)<TOL[tp];
+const fora=(tp,v)=>TOL[tp]!=null&&isFinite(v)&&Math.abs(v)>=TOL[tp];
+const waHref=t=>'https://wa.me/'+zap()+(t?'?text='+encodeURIComponent(t).replace(/'/g,'%27'):'');
+const pulou=c=>!!(c&&c.rel&&c.rel.pulo);
+const osDe=c=>String((c&&(c.os||(c.rel&&c.rel.os)))||'').trim();
+let scales=[],filter='all',openId=null;
+/* ===== Nuvem (Supabase): conta, perfil e sincronização ===== */
+const SB_URL='https://blfhqkyoiimsrqiejrze.supabase.co',SB_KEY='sb_publishable_iJt6MLs34_j8yU7feQ9N7A_6-F2HrrQ';
+const SES='cal.sessao.v1',CACHE='cal.cache.v1',OUT='cal.fila.v1',DRAFT='cal.rascunho.',PERF='cal.perfil.v1';
+const ls={get:(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+const getOut=()=>ls.get(OUT,[]),setOut=a=>{if(!ls.set(OUT,a))note('Memória do aparelho cheia: não foi possível guardar a fila de envio.')};
+const getDraft=id=>ls.get(DRAFT+id,null),setDraft=(id,w)=>ls.set(DRAFT+id,w),dropDraft=id=>ls.del(DRAFT+id);
+const hora=t=>new Date(t).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+const uuid=()=>{if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();const b=crypto.getRandomValues(new Uint8Array(16));b[6]=b[6]&15|64;b[8]=b[8]&63|128;const h=[...b].map(x=>x.toString(16).padStart(2,'0')).join('');return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20)};
+const isUuid=v=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v||''));
+const NATIVE=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+let base=[],role='admin',lastSync=null,netOk=null,syncP=null,ses=ls.get(SES,null),perfil=null;const done={};
+let DA=20,DV=30;
+const uid=()=>ses&&ses.user&&ses.user.id;
+function persist(){ls.set(CACHE,{uid:uid(),base,lastSync})}
+function setRole(){document.body.dataset.role='admin'}
+
+async function http(path,opt,comToken){
+  if(navigator.onLine===false)throw{net:true};
+  const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),30000);
+  const h=Object.assign({apikey:SB_KEY,'Content-Type':'application/json'},(opt&&opt.headers)||{});
+  if(comToken!==false&&ses)h.Authorization='Bearer '+ses.access_token;
+  let r;try{r=await fetch(SB_URL+path,Object.assign({},opt,{headers:h,signal:ac.signal}))}catch(e){throw{net:true}}finally{clearTimeout(tm)}
+  const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){}
+  return{status:r.status,j};
+}
+function setSes(j){
+  ses={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at||Math.floor(Date.now()/1000)+(j.expires_in||3600),user:j.user||(ses&&ses.user)};
+  ls.set(SES,ses);
+}
+let refP=null;
+function refresh(){
+  if(refP)return refP;
+  refP=(async()=>{
+    if(!ses||!ses.refresh_token)throw{code:'sessao'};
+    const r=await http('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:JSON.stringify({refresh_token:ses.refresh_token})},false);
+    if(r.status!==200)throw{code:'sessao'};
+    setSes(r.j);
+  })().finally(()=>{refP=null});
+  return refP;
+}
+async function rest(method,path,body,prefer){
+  if(!ses)throw{code:'sessao'};
+  if((ses.expires_at||0)-60<Date.now()/1000)await refresh();
+  const go=()=>http('/rest/v1/'+path,{method,body:body==null?undefined:JSON.stringify(body),headers:prefer?{Prefer:prefer}:{}});
+  let r=await go();
+  if(r.status===401){await refresh();r=await go()}
+  if(r.status>=200&&r.status<300)return r.j;
+  if(r.status===401)throw{code:'sessao'};
+  throw{code:(r.j&&(r.j.code||r.j.message))||('http-'+r.status)};
+}
+const ERR={sessao:'Sua sessão expirou. Entre de novo na sua conta.','23503':'O equipamento foi excluído; o registro não foi salvo.','42501':'Sem permissão para esta ação.','23514':'Valor fora do permitido. Confira os dados.'};
+const errMsg=e=>ERR[e&&e.code]||('Erro ao falar com a nuvem: '+((e&&e.code)||'desconhecido'));
+const AUTH=['sessao'];
+
+const toCal=r=>{const d=r.dados||{};return normCal({id:r.id,data:r.data,os:r.os||'',ei:r.erro_inicial==null?NaN:+r.erro_inicial,ef:r.erro_final==null?NaN:+r.erro_final,e1:d.e1||'',e2:d.e2||'',obs:d.obs||'',rel:d.rel||undefined})};
+function fromCal(eqId,tp,c){
+  const pu=pulou(c),v=pu?c.ei:c.ef;
+  return{id:c.id,equipamento_id:eqId,data:c.data,os:c.os||'',executantes:[c.e1,c.e2].filter(Boolean).join(' e '),erro_inicial:isFinite(c.ei)?c.ei:null,erro_final:isFinite(c.ef)?c.ef:null,dentro:isFinite(v)?dentro(tp,v):null,sem_ajuste:pu,dados:{e1:c.e1||'',e2:c.e2||'',obs:c.obs||'',rel:c.rel||null}};
+}
+async function api(action,d){
+  d=d||{};
+  switch(action){
+    case 'list':{
+      const r=await Promise.all([rest('GET','equipamentos?select=id,nome,tipo,local,pm,po&order=nome'),rest('GET','calibracoes?select=id,equipamento_id,data,os,erro_inicial,erro_final,dados&order=data')]);
+      const m={},l=r[0].map(e=>(m[e.id]=Object.assign({},e,{cal:[]})));
+      r[1].forEach(c=>{const s=m[c.equipamento_id];if(s)s.cal.push(toCal(c))});
+      return{scales:l};
+    }
+    case 'saveScale':{const x=d.scale;return rest('POST','equipamentos?on_conflict=id',{id:x.id,nome:x.nome,local:x.local||'',tipo:x.tipo},'resolution=merge-duplicates,return=minimal')}
+    case 'setPend':return rest('PATCH','equipamentos?id=eq.'+encodeURIComponent(d.balancaId),{pm:d.pm,po:d.po},'return=minimal');
+    case 'addCal':return rest('POST','calibracoes?on_conflict=id',fromCal(d.balancaId,d.tipo,d.cal),'resolution=ignore-duplicates,return=minimal');
+    case 'delCal':return rest('DELETE','calibracoes?id=eq.'+encodeURIComponent(d.id),null,'return=minimal');
+    case 'delScale':return rest('DELETE','equipamentos?id=eq.'+encodeURIComponent(d.id),null,'return=minimal');
+    case 'import':{
+      for(const b of d.scales||[]){
+        if(!b||!b.nome||!['dos','flu'].includes(b.tipo))continue;
+        await rest('POST','equipamentos?on_conflict=id',{id:b.id,nome:String(b.nome).slice(0,80),local:b.local||'',tipo:b.tipo,pm:b.pm||'',po:b.po||''},'resolution=merge-duplicates,return=minimal');
+        const cs=(b.cal||[]).filter(c=>c&&c.data).map(c=>fromCal(b.id,b.tipo,c));
+        if(cs.length)await rest('POST','calibracoes?on_conflict=id',cs,'resolution=ignore-duplicates,return=minimal');
+      }
+      return{};
+    }
+  }
+  throw{code:'acao-desconhecida'};
+}
+/* backups do outro app usam códigos curtos: aqui viram identificadores novos */
+function prepImport(scales){
+  return (scales||[]).map(b=>{const n=clone(b);if(!isUuid(n.id))n.id=uuid();(n.cal||[]).forEach(c=>{if(!isUuid(c.id))c.id=uuid()});return n});
+}
+
+function sync(){
+  if(syncP)return syncP;
+  syncP=(async()=>{
+    if(!ses)return;
+    setSync(true);let stop=false;
+    for(;;){
+      const q=getOut();if(!q.length)break;const o=q[0];
+      try{done[o.oid]={ok:true,r:await api(o.action,o.data)}}
+      catch(e){
+        if(e.net){stop='net';break}
+        if(AUTH.includes(e.code)){stop='auth';break}
+        done[o.oid]={ok:false,e};note(errMsg(e));
+      }
+      setOut(getOut().filter(x=>x.oid!==o.oid));
+    }
+    if(!stop){
+      try{const j=await api('list');base=normBase(j.scales);lastSync=Date.now()}
+      catch(e){if(e.net)stop='net';else if(AUTH.includes(e.code))stop='auth';else note(errMsg(e))}
+    }
+    if(stop==='net'&&getOut().length)ls.set('cal.offq',1);
+    else if(!stop&&!getOut().length&&ls.get('cal.offq',0)){ls.del('cal.offq');note('Os registros guardados no aparelho foram enviados à nuvem.')}
+    netOk=stop!=='net';recompute();persist();render();setSync(false);
+    if(stop==='auth'){note(ERR.sessao);showAuth()}
+  })().finally(()=>{syncP=null});
+  return syncP;
+}
+async function op(action,data){
+  const o={oid:'o'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),action,data};
+  setOut(getOut().concat([o]));recompute();render();setSync(false);
+  if(!ses)return 'sem-config';
+  await sync();
+  const pend=()=>getOut().some(x=>x.oid===o.oid);
+  if(pend()&&netOk)await sync();
+  if(pend())return 'fila';
+  return done[o.oid]&&done[o.oid].ok?'ok':'erro';
+}
+function setSync(busy){
+  const b=$('#sync');if(!b)return;const n=getOut().length;
+  if(!ses){b.hidden=true;return}
+  b.hidden=false;b.className='sync'+(netOk===false?' off':n?' pend':'');
+  b.innerHTML=`<i></i>${busy?'Sincronizando…':(netOk===false?'Sem internet':'Salvo na nuvem')+(lastSync?' · atualizado às '+hora(lastSync):'')}${n?' · '+n+' aguardando envio':''}`;
+}
+
+/* ===== Perfil: quem recebe os relatórios, tolerâncias e prazos ===== */
+const PF={nome:'',cargo:'',empresa:'',email_relatorio:'',whatsapp:'',tol_dos:0.5,tol_flu:1,dias_amarelo:20,dias_vermelho:30};
+function applyPerfil(){
+  const p=perfil||PF;
+  TOL.dos=+p.tol_dos>0?+p.tol_dos:0.5;TOL.flu=+p.tol_flu>0?+p.tol_flu:1;
+  DA=+p.dias_amarelo>0?+p.dias_amarelo:20;DV=+p.dias_vermelho>DA?+p.dias_vermelho:Math.max(30,DA+1);
+  renderMe();render();
+}
+async function loadPerfil(){
+  try{const r=await rest('GET','perfis?select=*&user_id=eq.'+uid());if(r&&r[0]){perfil=r[0];ls.set(PERF,perfil);applyPerfil()}}
+  catch(e){if(e.code==='sessao'){showAuth()}}
+}
+function renderMe(){
+  const p=perfil||PF,em=ses&&ses.user&&ses.user.email||'';
+  $('#meInfo').innerHTML=`<h2>${esc(p.nome||em||'Minha conta')}</h2>${p.cargo?`<p>${esc(p.cargo)}</p>`:''}${p.empresa?`<p class="mut">${esc(p.empresa)}</p>`:''}<p class="small mut">Relatórios: ${p.email_relatorio?esc(p.email_relatorio):'<b>sem e-mail</b>'} · ${p.whatsapp?'WhatsApp '+esc(p.whatsapp):'<b>sem WhatsApp</b>'}</p>`;
+  const lg=$('#legDias');if(lg)lg.textContent=`Em dia: até ${DA-1} dias · Atenção: ${DA} a ${DV-1} dias · Vencida: ${DV} dias ou mais`;
+}
+function openPerf(primeira){
+  const f=$('#fPerf'),p=perfil||PF;
+  ['nome','cargo','empresa','email_relatorio','whatsapp'].forEach(k=>f[k].value=p[k]||'');
+  f.tol_dos.value=String(p.tol_dos).replace('.',',');f.tol_flu.value=String(p.tol_flu).replace('.',',');
+  f.dias_amarelo.value=p.dias_amarelo;f.dias_vermelho.value=p.dias_vermelho;
+  $('#perfIntro').hidden=!primeira;$('#perfMsg').textContent='';$('#dPerf').showModal();
+}
+$('#fPerf').onsubmit=async e=>{
+  e.preventDefault();const f=e.target,m=$('#perfMsg');
+  const v={nome:f.nome.value.trim(),cargo:f.cargo.value.trim(),empresa:f.empresa.value.trim(),email_relatorio:f.email_relatorio.value.trim(),whatsapp:f.whatsapp.value.replace(/[^\d+]/g,''),tol_dos:pn(f.tol_dos.value),tol_flu:pn(f.tol_flu.value),dias_amarelo:parseInt(f.dias_amarelo.value,10),dias_vermelho:parseInt(f.dias_vermelho.value,10),atualizado_em:new Date().toISOString()};
+  if(v.email_relatorio&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email_relatorio)){m.textContent='E-mail inválido.';return}
+  if(v.whatsapp&&v.whatsapp.replace(/\D/g,'').length<10){m.textContent='WhatsApp inválido: use DDD e número.';return}
+  if(!(v.tol_dos>0&&v.tol_dos<=20&&v.tol_flu>0&&v.tol_flu<=20)){m.textContent='Tolerância deve ficar entre 0 e 20 %.';return}
+  if(!(v.dias_amarelo>0&&v.dias_vermelho>v.dias_amarelo)){m.textContent='O prazo de vencida precisa ser maior que o de atenção.';return}
+  m.textContent='Salvando…';
+  try{const r=await rest('PATCH','perfis?user_id=eq.'+uid(),v,'return=representation');if(r&&r[0])perfil=r[0];else perfil=Object.assign({},perfil||PF,v);ls.set(PERF,perfil);applyPerfil();$('#dPerf').close();note('Perfil salvo.')}
+  catch(x){m.textContent=x.net?'Sem internet. Tente de novo quando a conexão voltar.':errMsg(x)}
+};
+
+/* ===== Entrar e criar conta ===== */
+const AERR={invalid_credentials:'E-mail ou senha incorretos.',user_already_exists:'Este e-mail já tem cadastro. Use “Entrar”.',email_exists:'Este e-mail já tem cadastro. Use “Entrar”.',weak_password:'Senha fraca: use pelo menos 6 caracteres.',email_not_confirmed:'Confirme o cadastro pelo link enviado ao seu e-mail antes de entrar.',over_email_send_rate_limit:'Muitas tentativas. Aguarde alguns minutos.',over_request_rate_limit:'Muitas tentativas. Aguarde alguns minutos.',validation_failed:'Confira o e-mail e a senha.',email_address_invalid:'E-mail inválido.'};
+let modo='entrar';
+function showAuth(){$('#app').hidden=true;$('#auth').hidden=false;document.querySelectorAll('dialog[open]').forEach(d=>d.close());setModo(modo)}
+function setModo(m){
+  modo=m;const f=$('#fAuth');
+  f.querySelectorAll('.cad').forEach(x=>x.hidden=m!=='criar');
+  f.nome.required=m==='criar';
+  $('#tabE').classList.toggle('on',m==='entrar');$('#tabC').classList.toggle('on',m==='criar');
+  $('#bAuth').textContent=m==='criar'?'Criar conta':'Entrar';
+  f.senha.autocomplete=m==='criar'?'new-password':'current-password';$('#authMsg').textContent='';
+}
+$('#tabE').onclick=()=>setModo('entrar');$('#tabC').onclick=()=>setModo('criar');
+$('#fAuth').onsubmit=async e=>{
+  e.preventDefault();const f=e.target,m=$('#authMsg'),b=$('#bAuth');
+  const email=f.email.value.trim().toLowerCase(),senha=f.senha.value;
+  if(senha.length<6){m.textContent='A senha precisa ter pelo menos 6 caracteres.';return}
+  b.disabled=true;m.textContent=modo==='criar'?'Criando a conta…':'Entrando…';
+  try{
+    let r;
+    if(modo==='criar'){
+      const c=await http('/functions/v1/cadastrar',{method:'POST',body:JSON.stringify({email,password:senha,nome:f.nome.value.trim(),empresa:f.empresa.value.trim()})},false);
+      if(c.status>=400){m.textContent=AERR[c.j&&c.j.error_code]||'Não foi possível criar a conta. Tente de novo.';return}
+    }
+    r=await http('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email,password:senha})},false);
+    if(r.status>=400||!r.j){m.textContent=AERR[r.j&&(r.j.error_code||r.j.code)]||(r.j&&(r.j.msg||r.j.error_description||r.j.message))||'Não foi possível entrar.';return}
+    if(!r.j.access_token){m.textContent='Conta criada. Abra o e-mail de confirmação que enviamos e depois toque em “Entrar”.';setModo('entrar');$('#authMsg').textContent='Conta criada. Confirme pelo link enviado ao seu e-mail e depois entre.';return}
+    const antes=(ls.get(CACHE,null)||{}).uid;setSes(r.j);
+    if(antes&&antes!==uid()){[CACHE,OUT,PERF].forEach(ls.del);base=[];perfil=null}
+    f.senha.value='';startSession(modo==='criar');
+  }catch(x){m.textContent=x.net?'Sem internet. Conecte-se para entrar.':'Não foi possível entrar.'}
+  finally{b.disabled=false}
+};
+async function sair(){
+  const n=getOut().length;
+  if(!confirm(n?'Há '+n+' registro(s) ainda não enviados à nuvem, que serão perdidos. Sair mesmo assim?':'Sair da sua conta neste aparelho?'))return;
+  try{await http('/auth/v1/logout',{method:'POST'})}catch(e){}
+  [SES,CACHE,OUT,PERF].forEach(ls.del);Object.keys(localStorage).filter(k=>k.indexOf(DRAFT)===0).forEach(ls.del);
+  ses=null;perfil=null;base=[];lastSync=null;netOk=null;recompute();cat=null;applyPerfil();setSync(false);modo='entrar';showAuth();
+}
+function startSession(nova){
+  $('#auth').hidden=true;$('#app').hidden=false;
+  const p=ls.get(PERF,null);if(p&&p.user_id===uid()){perfil=p}applyPerfil();
+  loadPerfil().then(()=>{if(nova||(perfil&&!perfil.email_relatorio&&!perfil.whatsapp))openPerf(true)});
+  sync();
+}
+
+/* ===== Arquivos e links externos (no APK usa o compartilhamento do Android) ===== */
+function saveFileWeb(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+const blobB64=b=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=no;r.readAsDataURL(b)});
+async function shareFile(name,blob,text){
+  if(NATIVE){
+    const P=window.Capacitor.Plugins;
+    const wr=await P.Filesystem.writeFile({path:name,data:await blobB64(blob),directory:'CACHE'});
+    await P.Share.share({title:name,text:text||undefined,files:[wr.uri],dialogTitle:'Enviar relatório'});return;
+  }
+  const f=new File([blob],name,{type:blob.type||'application/octet-stream'});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:name,text})}catch(e){}return}
+  saveFileWeb(name,blob);
+}
+function saveFile(name,blob){if(NATIVE)shareFile(name,blob).catch(e=>note('Não foi possível abrir o compartilhamento: '+((e&&e.message)||e)));else saveFileWeb(name,blob)}
+function openExt(u){if(NATIVE)location.href=u;else window.open(u,'_blank','noopener')}
+document.addEventListener('click',e=>{
+  const a=e.target.closest('a[href]');if(!a)return;const h=a.getAttribute('href');
+  if(/^(https?:|mailto:|tel:|whatsapp:)/i.test(h)&&(NATIVE||a.target==='_blank')){e.preventDefault();openExt(h)}
+});
+const zap=()=>{let n=String((perfil&&perfil.whatsapp)||'').replace(/\D/g,'');if(n&&n.length<=11)n='55'+n;return n};
+const mailHref=(assunto,corpo)=>'mailto:'+encodeURI((perfil&&perfil.email_relatorio)||'')+'?subject='+encodeURIComponent(assunto)+'&body='+encodeURIComponent(corpo);
+
+
+const sorted=(s,dir)=>(s.cal||[]).slice().sort((a,b)=>(a.data<b.data?-1:a.data>b.data?1:String(a.id)<String(b.id)?-1:String(a.id)>String(b.id)?1:0)*dir);
+function stat(s){
+  const l=sorted(s,-1)[0];
+  if(!l)return{k:'r',q:'r',d:Infinity,l,t:'Vencida · sem calibração registrada'};
+  const d=daysSince(l.data);
+  if(d>=DV)return{k:'r',q:'r',d,l,t:'Vencida · '+pl(d)+' sem calibrar'};
+  if(fora(s.tipo,l.ef))return{k:'r',q:'t',d,l,t:'Fora da tolerância ('+tolTxt(s.tipo)+')'};
+  if(d>=DA)return{k:'y',q:'y',d,l,t:'Atenção · vence em '+pl(DV-d)};
+  return{k:'g',q:'g',d,l,t:'Em dia · vence em '+pl(DV-d)};
+}
+const lamp=(k,big)=>`<span class="tl${big?' big':''}" data-k="${k}" role="img" aria-label="Farol ${{g:'verde',y:'amarelo',r:'vermelho'}[k]}"><i class="r"></i><i class="y"></i><i class="g"></i></span>`;
+const tags=s=>(s.pm?'<p class="small pend">Pendência mecânica</p>':'')+(s.po?'<p class="small pend">Pendência operacional</p>':'');
+function note(m){const n=$('#note');n.textContent=m;n.hidden=!m}
+
+function arm(b,fn,label){
+  if(!unlocked){askPw(()=>arm(b,fn,label));return}
+  if(!b.dataset.arm){b.dataset.arm=1;const t=b.textContent;b.textContent=label;setTimeout(()=>{delete b.dataset.arm;b.textContent=t},3000);return}
+  fn();
+}
+
+function renderList(){
+  const rows=inCat().map(s=>({s,t:stat(s)}));
+  const c={g:0,y:0,r:0,t:0};rows.forEach(r=>c[r.t.q]++);
+  $('#chips').innerHTML=[['all','Todas',rows.length],['g','Em dia',c.g],['y','Atenção',c.y],['r','Vencidas',c.r],['t','Fora da tolerância',c.t]]
+    .filter(([k,,q])=>k!=='t'||q||filter==='t')
+    .map(([k,n,q])=>`<button class="chip${filter===k?' on':''}" data-f="${k}">${k!=='all'?`<i class="dot ${k==='t'?'r':k}"></i>`:''}${n} <b>${q}</b></button>`).join('');
+  const RK={r:0,t:1,y:2,g:3};
+  const vis=rows.filter(r=>filter==='all'||r.t.q===filter).sort((a,b)=>(RK[a.t.q]-RK[b.t.q])||(a.t.d===b.t.d?0:b.t.d>a.t.d?1:-1)||a.s.nome.localeCompare(b.s.nome));
+  $('#list').innerHTML=vis.length?vis.map(({s,t})=>{
+    const l=t.l;
+    return `<article class="card" data-id="${s.id}" tabindex="0" role="button">${lamp(t.k)}<div class="cb"><h3>${esc(s.nome)}</h3>${s.local?`<p class="mut small">${esc(s.local)}</p>`:''}<span class="st ${t.k}">${t.t}</span>${tags(s)}${l?`<p class="small">Calibrada em ${fd(l.data)} · há ${pl(t.d)}</p><p class="small">${pulou(l)?`Erro inicial <b>${num(l.ei)} %</b> · dentro da tolerância, sem ajuste`:`Erro inicial <b>${num(l.ei)} %</b> → final <b>${num(l.ef)} %</b>`}</p>`:''}</div></article>`;
+  }).join(''):`<p class="empty">${rows.length?'Nenhuma balança nesta situação.':'Nenhuma balança cadastrada. Toque em “Nova balança” para começar.'}</p>`;
+}
+
+function chart(s){
+  const c=sorted(s,1),tp=s.tipo,tol=TOL[tp];
+  if(!c.length)return '<p class="mut small">Registre a primeira calibração para ver o histórico.</p>';
+  const H=252,T=26,B=58,PH=H-T-B,AX=46,BW=28,IG=8,GW=BW*2+IG,GAP=28;
+  const v=c.flatMap(x=>[x.ei,x.ef]).filter(x=>isFinite(x));if(tol)v.push(tol,-tol);
+  let hi=Math.max(0,...v),lo=Math.min(0,...v);
+  const raw=(hi-lo)/4||0.25,mag=Math.pow(10,Math.floor(Math.log10(raw))),stp=[1,2,2.5,5,10].map(m=>m*mag).find(m=>m>=raw);
+  hi=Math.ceil(hi/stp-1e-9)*stp;lo=Math.floor(lo/stp+1e-9)*stp;if(hi===lo)hi=lo+stp;
+  const Y=y=>T+(hi-y)*PH/(hi-lo),y0=Y(0);
+  const pct=x=>(Math.abs(x)<1e-9?0:x).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const ticks=[];for(let t=lo;t<=hi+stp/2;t+=stp)ticks.push(+t.toFixed(6));
+  const slot=Math.max(GW+GAP,240/c.length),W=Math.round(slot*c.length);
+  let ax='',g='';
+  ticks.forEach(t=>{ax+=`<text x="${AX-6}" y="${Y(t)+4}" text-anchor="end" font-size="11" fill="var(--mut)">${pct(t)}%</text>`;g+=`<line x1="0" x2="${W}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--line)" stroke-width="1"/>`});
+  if(tol)[tol,-tol].forEach(t=>{g+=`<line x1="0" x2="${W}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--mut)" stroke-width="1.5" stroke-dasharray="6 4"/>`});
+  g+=`<line x1="0" x2="${W}" y1="${y0}" y2="${y0}" stroke="var(--mut)" stroke-width="1.5"/>`;
+  const cor=(val,def)=>tol?(dentro(tp,val)?'--ok':'--nok'):def;
+  const sit=val=>tol?(dentro(tp,val)?' · dentro da tolerância':' · fora da tolerância'):'';
+  const bar=(x,val,col,lab)=>{
+    const y1=Y(val),h=Math.abs(y1-y0),r=Math.min(4,h);
+    const d=val>=0?`M${x} ${y0}V${y1+r}Q${x} ${y1} ${x+r} ${y1}H${x+BW-r}Q${x+BW} ${y1} ${x+BW} ${y1+r}V${y0}Z`
+                  :`M${x} ${y0}V${y1-r}Q${x} ${y1} ${x+r} ${y1}H${x+BW-r}Q${x+BW} ${y1} ${x+BW} ${y1-r}V${y0}Z`;
+    const ty=val>=0?y1-6:y1+15;
+    return `<path class="bar" d="${d}" fill="var(${col})"><title>${lab}: ${pct(val)} %${sit(val)}</title></path><text x="${x+BW/2}" y="${ty}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)" stroke="var(--card)" stroke-width="4" stroke-linejoin="round" paint-order="stroke">${pct(val)}</text>`;
+  };
+  const lbl=(x,t)=>`<text x="${x}" y="${H-29}" text-anchor="middle" font-size="10" fill="var(--mut)">${t}</text>`;
+  c.forEach((x,i)=>{
+    const gx=i*slot+(slot-GW)/2,dt=fd(x.data);
+    if(pulou(x)){const bx=gx+(GW-BW)/2;g+=bar(bx,x.ei,cor(x.ei,'--ci'),dt+' · Erro inicial (sem ajuste)')+lbl(bx+BW/2,'sem ajuste')}
+    else g+=bar(gx,x.ei,cor(x.ei,'--ci'),dt+' · Erro inicial')+bar(gx+BW+IG,x.ef,cor(x.ef,'--cf'),dt+' · Erro final')+lbl(gx+BW/2,'inicial')+lbl(gx+BW+IG+BW/2,'final');
+    g+=`<text x="${gx+GW/2}" y="${H-11}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">${dt.slice(0,6)+dt.slice(8)}</text>`;
+  });
+  const leg=tol?`<div class="leg"><span class="ok">Dentro da tolerância</span><span class="nok">Fora da tolerância</span><span class="lim">Limite ${tolTxt(tp)}</span></div>`:`<div class="leg"><span class="a">Erro inicial</span><span class="b">Erro final</span></div>`;
+  return `${leg}<div class="chart"><svg class="yax" width="${AX}" height="${H}" aria-hidden="true">${ax}</svg><div class="cscroll"><svg width="${W}" height="${H}" role="img" aria-label="Erro inicial e final de cada calibração, em %${tol?', com limite de tolerância de '+tolTxt(tp):''}">${g}</svg></div></div><p class="mut small">Erro em % · acima da linha do zero = positivo, abaixo = negativo${c.length*slot>300?' · arraste para ver as anteriores':''}</p>`;
+}
+
+function renderDetail(){
+  const s=scales.find(x=>x.id===openId);
+  if(!s){if($('#dSc').open)$('#dSc').close();return}
+  const t=stat(s),l=t.l;
+  $('#dHead').innerHTML=`${lamp(t.k,true)}<div><h2>${esc(s.nome)}</h2>${s.local?`<p class="mut">${esc(s.local)}</p>`:''}<span class="st ${t.k}">${t.t}</span>${l?`<p class="small">Última calibração em ${fd(l.data)} (há ${pl(t.d)})</p>`:''}<label class="small mut tp adm">Tipo: <select id="selTipo">${!s.tipo?'<option value="">Escolher…</option>':''}<option value="dos"${s.tipo==='dos'?' selected':''}>Dosadora</option><option value="flu"${s.tipo==='flu'?' selected':''}>De fluxo</option></select></label><button class="lnk adm" id="bDel">Excluir balança</button></div><button class="x" data-close aria-label="Fechar">×</button>`;
+  ['pm','po'].forEach(k=>{const ta=$('#'+k);if(!ta.dataset.dirty)ta.value=s[k]||''});
+  $('#bWiz').hidden=!['flu','dos'].includes(s.tipo);const dr=getDraft(s.id);$('#bWizGo').textContent=dr?'Continuar calibração em andamento':'Iniciar calibração guiada';$('#bWizDel').hidden=!dr;
+  $('#dChart').innerHTML=chart(s);{const sc=$('#dChart .cscroll');if(sc)sc.scrollLeft=sc.scrollWidth}
+  $('#dHist').innerHTML=sorted(s,-1).map(c=>`<li><div class="hr"><b>${fd(c.data)}</b><span>${pulou(c)?num(c.ei)+' % · sem ajuste':`${num(c.ei)} % → ${num(c.ef)} %`}</span></div><p class="small mut">${osDe(c)?'O.S. '+esc(osDe(c))+' · ':''}Executantes: ${esc(c.e1)} e ${esc(c.e2)}</p>${c.obs?`<p class="small">${esc(c.obs)}</p>`:''}<button class="lnk" data-send="${c.id}">Enviar relatório (PDF)</button><button class="lnk" data-pdf="${c.id}">Salvar PDF</button><button class="lnk adm" data-c="${c.id}">Excluir registro</button></li>`).join('')||'<li class="mut small">Nenhum registro ainda.</li>';
+  const names=new Set();scales.forEach(x=>(x.cal||[]).forEach(c=>{names.add(c.e1);names.add(c.e2)}));
+  $('#nomes').innerHTML=[...names].map(n=>`<option value="${esc(n)}">`).join('');
+}
+const CATS={dos:'Balanças dosadoras',flu:'Balanças de fluxo',sem:'Sem categoria'};
+let cat=null;
+const inCat=()=>scales.filter(s=>(s.tipo||'sem')===cat);
+function renderHome(){
+  const ks=['dos','flu'];if(scales.some(s=>!s.tipo))ks.push('sem');
+  $('#home').innerHTML=ks.map(k=>{
+    const l=scales.filter(s=>(s.tipo||'sem')===k),c={g:0,y:0,r:0,t:0};l.forEach(s=>c[stat(s).q]++);
+    return `<button class="tile" data-cat="${k}"><h2>${CATS[k]}</h2><p class="mut">${l.length?pl(l.length).replace('dia','balança'):'Nenhuma cadastrada'}</p><div class="cnt"><span><i class="dot g"></i>${c.g} em dia</span><span><i class="dot y"></i>${c.y} atenção</span><span><i class="dot r"></i>${c.r} vencida${c.r===1?'':'s'}</span>${c.t?`<span><i class="dot r"></i>${c.t} fora da tolerância</span>`:''}</div></button>`}).join('');
+}
+function showView(){
+  const h=!cat;
+  $('#home').hidden=!h;$('#me').hidden=!h;$('#catv').hidden=h;$('#bBack').hidden=h;$('#bNew').hidden=h||cat==='sem';
+  $('#ttl').textContent=h?'Calibração de balanças':CATS[cat];
+  $('#sub').textContent=h?'Escolha o tipo de balança':'Prazo por farol e histórico de erros';
+}
+function render(){
+  if(cat==='sem'&&!scales.some(s=>!s.tipo))cat=null;
+  renderHome();if(cat)renderList();showView();if($('#dSc').open)renderDetail();
+}
+
+$('#chips').onclick=e=>{const b=e.target.closest('[data-f]');if(b){filter=b.dataset.f;renderList()}};
+const openScale=id=>{
+  openId=id;$('#calAv').innerHTML='';const f=$('#fCal');f.reset();f.data.value=iso(new Date());['pm','po'].forEach(k=>delete $('#'+k).dataset.dirty);
+  $('#dSc').showModal();renderDetail();$('#dSc').scrollTop=0;
+};
+$('#list').onclick=e=>{const c=e.target.closest('.card');if(c)openScale(c.dataset.id)};
+$('#list').onkeydown=e=>{if(e.key==='Enter'){const c=e.target.closest('.card');if(c)openScale(c.dataset.id)}};
+document.querySelectorAll('dialog').forEach(d=>{
+  d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-close]'))d.close()});
+});
+$('#home').onclick=e=>{const b=e.target.closest('[data-cat]');if(b){cat=b.dataset.cat;filter='all';render();window.scrollTo(0,0)}};
+$('#bBack').onclick=()=>{cat=null;render();window.scrollTo(0,0)};
+$('#bNew').onclick=()=>auth(()=>{$('#fNew').reset();$('#hNew').textContent=cat==='dos'?'Nova balança dosadora':'Nova balança de fluxo';$('#dNew').showModal()});
+$('#fNew').onsubmit=e=>{
+  e.preventDefault();const f=e.target;
+  const s={id:uuid(),nome:f.nome.value.trim(),local:f.local.value.trim(),tipo:cat,pm:'',po:'',cal:[]};
+  $('#dNew').close();op('saveScale',{scale:{id:s.id,tipo:s.tipo,nome:s.nome,local:s.local}});openScale(s.id);
+};
+$('#fPend').oninput=e=>{e.target.dataset.dirty=1};
+$('#fPend').onsubmit=e=>{
+  e.preventDefault();
+  const s=clone(scales.find(x=>x.id===openId));
+  s.pm=$('#pm').value.trim();s.po=$('#po').value.trim();
+  delete $('#pm').dataset.dirty;delete $('#po').dataset.dirty;
+  const b=e.submitter;if(b){const t=b.textContent;b.textContent='Salvo';setTimeout(()=>{b.textContent=t},1500)}
+  op('setPend',{balancaId:s.id,pm:s.pm,po:s.po});
+};
+$('#fCal').onsubmit=e=>{
+  e.preventDefault();const f=e.target;
+  const ei=parseFloat(f.ei.value.replace(',','.')),ef=parseFloat(f.ef.value.replace(',','.'));
+  if(isNaN(ei)||isNaN(ef)){note('Informe erro inicial e final como números.');return}
+  note('');
+  const s=clone(scales.find(x=>x.id===openId));s.cal=s.cal||[];
+  const nid=uuid();
+  s.cal.push({id:nid,data:f.data.value,os:f.os.value.trim(),ei,ef,e1:f.e1.value.trim(),e2:f.e2.value.trim(),obs:f.obs.value.trim()});
+  const e1=f.e1.value,e2=f.e2.value;f.reset();f.data.value=iso(new Date());f.e1.value=e1;f.e2.value=e2;
+  const nc=s.cal[s.cal.length-1];
+  $('#calAv').innerHTML=fora(s.tipo,ef)?avForaFinal(txtCurto(s,nc),s.tipo):TOL[s.tipo]?`<div class='av g'><b>Calibração registrada. Erro final dentro da tolerância (${tolTxt(s.tipo)}).</b></div>`:'';
+  addCal(s,nc).then(r=>note(msgEnvio(r)));
+};
+$('#dSc').addEventListener('click',e=>{
+  const sb=e.target.closest('[data-send]');if(sb){const s=scales.find(x=>x.id===openId),c=s&&s.cal.find(x=>x.id===sb.dataset.send);if(c)enviarPdf(s,c);return}
+  const pb=e.target.closest('[data-pdf]');if(pb){const s=scales.find(x=>x.id===openId),c=s&&s.cal.find(x=>x.id===pb.dataset.pdf);if(c)savePdf(s,c);return}
+  if(e.target.closest('#bWizGo')){auth(wizOpen);return}
+  const wd=e.target.closest('#bWizDel');if(wd){arm(wd,()=>{dropDraft(openId);renderDetail()},'Toque para confirmar');return}
+  const b=e.target.closest('#bDel,[data-c]');if(!b)return;
+  if(b.id==='bDel')arm(b,()=>{const id=openId;$('#dSc').close();op('delScale',{id})},'Toque para confirmar');
+  else arm(b,()=>op('delCal',{id:b.dataset.c}),'Toque para confirmar');
+});
+$('#dSc').addEventListener('change',e=>{
+  if(e.target.id==='selTipo'&&e.target.value){const s=scales.find(x=>x.id===openId);op('saveScale',{scale:{id:s.id,tipo:e.target.value,nome:s.nome,local:s.local}})}
+});
+$('#dSc').addEventListener('close',()=>{openId=null});
+
+render();
+/* ===== Calibração guiada · balança de fluxo e dosadora ===== */
+const pn=v=>parseFloat(String(v==null?'':v).replace(',','.'));
+const fmt=(v,d=3)=>isFinite(v)?Number(v).toLocaleString('pt-BR',{maximumFractionDigits:d}):'-';
+const FL={os:['Número da O.S.'],e1:['Executante 1'],e2:['Executante 2'],b04:['B-04 · Pulsos por metro','pulsos/m'],c02:['C-02 · Tempo de volta','s'],c05:['C-05 · Comprimento da mesa','m'],c08:['C-08 · Peso padrão','kg'],d02:['D-02 · Fator de correção'],d06:['D-06 · Pulsos por volta','pulsos'],tc:['Tamanho da correia','m'],tcd:['Distância marcada na correia','m'],tct:['Tempo do ponto 0 até a marca','s'],tcv:['Tempo de uma volta completa','s'],t1:['Tempo encontrado','s'],tv:['Tempo de volta aferido','s'],tv1:['Tempo 1','s'],tv2:['Tempo 2','s'],tv3:['Tempo 3','s'],d06n:['Novo D-06 (Input Belt)','pulsos'],k1:['Tara 01'],k2:['Tara 02'],d02n:['Novo D-02 · Fator de correção'],t2:['Tempo encontrado','s'],p1:['Linha 1 · Pedido','t/h'],s1:['Linha 1 · Tempo de volta','s'],p2:['Linha 2 · Pedido','t/h'],s2:['Linha 2 · Tempo de volta','s'],p3:['Linha 1 · Pedido','t/h'],s3:['Linha 1 · Tempo de volta','s'],p4:['Linha 2 · Pedido','t/h'],s4:['Linha 2 · Tempo de volta','s']};
+const TXT=['os','e1','e2','k1','k2','data'];
+const CK=['Balança voltada para gravimétrico','Teclado desabilitado','Pesos guardados','Totalização restaurada','Balança liberada para operação'];
+const WS={
+  flu:[{id:'dados',t:'Dados iniciais',f:['os','e1','e2','b04','c02','c05','c08','d02','d06','tc']},{id:'ei',t:'Erro inicial',f:['t1']},{id:'vol',t:'Volumétrico',f:['tv1','tv2','tv3']},{id:'belt',t:'Input Belt',f:['d06n']},{id:'tara',t:'Tara',f:['k1','k2']},{id:'chk',t:'Check weight',f:['d02n']},{id:'ef',t:'Erro final',f:['t2']},{id:'fim',t:'Encerramento',f:[]}],
+  dos:[{id:'dados',t:'Dados iniciais',f:['os','e1','e2','b04','c02','c05','c08','d02','d06','tc']},{id:'ei',t:'Erro inicial',f:['p1','s1','p2','s2']},{id:'vol',t:'Volumétrico',f:['tv1','tv2','tv3']},{id:'belt',t:'Input Belt',f:['d06n']},{id:'tara',t:'Tara',f:['k1','k2']},{id:'chk',t:'Check weight',f:['d02n']},{id:'ef',t:'Erro final',f:['p3','s3','p4','s4']},{id:'fim',t:'Encerramento',f:[]}]};
+const WI={
+  dados:'Informe os parâmetros atuais do módulo (coleta de parâmetros).',
+  ei:{flu:'COM OS PESOS. Zere o totalizador da balança e cronometre o tempo até o totalizador indicar o valor em destaque abaixo. Informe o tempo encontrado.',dos:'COM OS PESOS. Afira o tempo de volta e informe o pedido e o tempo de volta de cada linha.'},
+  vol:{flu:'Passe a balança para volumétrico e habilite o teclado. Aferir o tempo de volta e informe abaixo.',dos:'Passe a balança para volumétrico e habilite o teclado, fazer o pedido meio de faixa. Aferir o tempo de volta e informe abaixo'},
+  belt:{flu:'Faça o Input Belt no módulo e informe o novo valor de D-06 (pulsos por volta). Digite no módulo o novo B-04 calculado abaixo.',dos:'SEM OS PESOS. Faça o Input Belt no módulo e informe o novo valor de D-06 (pulsos por volta). Digite no módulo o novo B-04 calculado abaixo.'},
+  tara:{flu:'Realize o procedimento de tara duas vezes, sem os pesos padrão, e informe os resultados.',dos:'SEM OS PESOS. Realize o procedimento de tara duas vezes, sem os pesos padrão, e informe os resultados.'},
+  chk:{flu:'Com o peso padrão na balança, faça o check weight e informe o novo fator de correção (D-02).',dos:'COM OS PESOS. Com o peso padrão na balança, faça o check weight e informe o novo fator de correção (D-02).'},
+  ef:{flu:'COM OS PESOS. Volte a balança para gravimétrico. Zere o totalizador e cronometre o tempo até o totalizador indicar o valor em destaque abaixo. Informe o tempo encontrado.',dos:'COM OS PESOS. Volte a balança para gravimétrico e informe o pedido e o tempo de volta de cada linha.'}
+};
+const okf=k=>TXT.includes(k)?String(w[k]||'').trim()!=='':pn(w[k])>0;
+let w=null,wsid=null,wDone=false,wLast=null;
+function calc(w){
+  const cor=pn(w.d06)/pn(w.b04),vel=cor/pn(w.c02),Q=vel*3.6*pn(w.c08)/pn(w.c05),T=2*pn(w.c02),tons=Q*T/3600;
+  const fe=t=>cor/pn(t)*3.6*pn(w.c08)/pn(w.c05),er=(p,s)=>(fe(s)/pn(p)-1)*100;
+  const tvs=[w.tv1,w.tv2,w.tv3].map(pn).filter(v=>v>0),tv=tvs.length===3?(tvs[0]+tvs[1]+tvs[2])/3:pn(w.tv);
+  const o={cor,vel,Q,T,tons,tv,tvs,b04n:pn(w.d06n)/cor,dd:(pn(w.d02n)-pn(w.d02))/pn(w.d02)*100,dv:(tv-pn(w.c02))/pn(w.c02)*100};
+  if(w.tp==='dos'){
+    o.f=[1,2,3,4].map(i=>fe(w['s'+i]));o.e=[1,2,3,4].map(i=>er(w['p'+i],w['s'+i]));
+    o.ei=(o.e[0]+o.e[1])/2;o.ef=(o.e[2]+o.e[3])/2;
+  }else{o.ei=(pn(w.t1)/T-1)*100;o.ef=(pn(w.t2)/T-1)*100}
+  return o;
+}
+const SWK=['t1','t2','s1','s2','s3','s4','tct','tcv'];
+const inp=k=>k==='tc'?`<label>${FL.tc[0]} (m)<input data-k='tc' inputmode=decimal value='${esc(w.tc)}' autocomplete='off'>${w.tp==='flu'?`<button type='button' class='btn swb' data-tcopen>${tcOpen?'Fechar o cálculo':'Calcular tamanho'}</button>`:''}</label>`:`<label>${FL[k][0]}${FL[k][1]?' ('+FL[k][1]+')':''}<input data-k='${k}' ${k[0]==='e'||k==='os'?'':'inputmode=decimal'}${k==='os'?" maxlength='30'":''} value='${esc(w[k])}' autocomplete='off'>${SWK.includes(k)?`<button type='button' class='btn swb' data-sw='${k}'>Cronometrar</button>`:''}</label>`;
+const volCard=()=>`<div class='swc'><div class='swd' data-swd>0,00 s</div><button type='button' class='btn pri swbig' data-sw='vol'>Iniciar tomada 1</button><p class='small mut' style='text-align:center'>Afira 3 voltas da correia. O app usa a média dos 3 tempos.</p></div><div class='f3'>${['tv1','tv2','tv3'].map(inp).join('')}</div><button type='button' class='lnk' data-swclr>Limpar os 3 tempos</button>`;
+/* cálculo do tamanho da correia por regra de três: distância marcada × tempo de 1 volta ÷ tempo até a marca */
+let tcOpen=false;
+const tcCalc=w=>pn(w.tcd)*pn(w.tcv)/pn(w.tct);
+const tcCard=()=>`<div class='tcc' id='tcCard'><b>Calcular o tamanho da correia</b>
+<p class='small'><b>1.</b> Com a correia parada, faça duas marcas nela com uma distância conhecida entre elas (por exemplo, 20 metros) e informe essa distância.</p>
+<label>${FL.tcd[0]} (m)<input data-k='tcd' inputmode=decimal value='${esc(w.tcd)}' autocomplete='off' placeholder='Ex.: 20'></label>
+<p class='small'><b>2.</b> Ligue a correia. Inicie o cronômetro quando a primeira marca (ponto 0) passar pela referência e pare quando a segunda marca passar.</p>
+<label>${FL.tct[0]} (s)<input data-k='tct' inputmode=decimal value='${esc(w.tct)}' autocomplete='off'><button type='button' class='btn swb' data-sw='tct'>Cronometrar</button></label>
+<p class='small'><b>3.</b> Agora cronometre uma volta completa: inicie quando a marca do ponto 0 passar pela referência e pare quando ela passar de novo.</p>
+<label>${FL.tcv[0]} (s)<input data-k='tcv' inputmode=decimal value='${esc(w.tcv)}' autocomplete='off'><button type='button' class='btn swb' data-sw='tcv'>Cronometrar</button></label>
+<p class='small'><b>4.</b> O app faz a regra de três: se a distância marcada passa em um tempo, quantos metros passam em uma volta completa.</p>
+<div id='tcRes'></div></div>`;
+function tcPaint(){
+  const el=$('#tcRes');if(!el)return;const v=tcCalc(w);
+  el.innerHTML=isFinite(v)&&v>0?`<div class='res'><span>${fmt(pn(w.tcd))} m em ${fmt(pn(w.tct),2)} s → ? m em ${fmt(pn(w.tcv),2)} s</span><span>Tamanho = ${fmt(pn(w.tcd))} × ${fmt(pn(w.tcv),2)} ÷ ${fmt(pn(w.tct),2)} = <b class='bn'>${fmt(v,2)} m</b></span></div><button type='button' class='btn pri' data-tcuse>Usar ${fmt(v,2)} m como tamanho da correia</button>`:`<p class='small mut'>Preencha os 3 valores para ver o tamanho calculado.</p>`;
+}
+/* cronômetro: marca pela hora do aparelho, então continua certo mesmo se a tela apagar */
+let sw=null,swLast=0;
+const swFmt=x=>x.toFixed(2).replace('.',',');
+function swPaint(){
+  if(!w)return;
+  document.querySelectorAll('#wBody [data-sw]').forEach(b=>{
+    const k=b.dataset.sw,run=!!(sw&&sw.k===k),x=run?(Date.now()-sw.t0)/1000:0;
+    b.classList.toggle('run',run);
+    if(k==='vol'){
+      const n=['tv1','tv2','tv3'].filter(q=>pn(w[q])>0).length;
+      b.disabled=!run&&n>=3;
+      b.textContent=run?'Parar':(n>=3?'3 tempos registrados':'Iniciar tomada '+(n+1));
+    }else b.textContent=run?'Parar · '+swFmt(x)+' s':'Cronometrar';
+  });
+  const d=$('#wBody [data-swd]');if(d)d.textContent=swFmt(sw&&sw.k==='vol'?(Date.now()-sw.t0)/1000:swLast)+' s';
+}
+function swStart(k){swStop(false);sw={k,t0:Date.now()};sw.iv=setInterval(swPaint,50);swPaint()}
+function swStop(save){
+  if(!sw)return;
+  clearInterval(sw.iv);const x=(Date.now()-sw.t0)/1000,k=sw.k;sw=null;
+  if(save&&w){
+    const tk=k==='vol'?['tv1','tv2','tv3'].find(q=>!(pn(w[q])>0)):k;
+    if(tk){w[tk]=swFmt(x);const i=$('#wBody [data-k='+tk+']');if(i)i.value=w[tk];const er=$('#wErr');if(er)er.textContent=''}
+    if(k==='vol')swLast=x;
+    wLive();
+  }
+  swPaint();
+}
+function wizOpen(){
+  const s=scales.find(x=>x.id===openId);wsid=s.id;wDone=false;tcOpen=false;
+  const dr=getDraft(s.id);w=dr&&dr.v===3?dr:{v:3,step:0,tp:s.tipo,data:iso(new Date())};
+  wRender();$('#dWiz').showModal();$('#dWiz').scrollTop=0;
+}
+function wSave(){const s=scales.find(x=>x.id===wsid);if(!s||wDone||!w)return;setDraft(wsid,w);if($('#dSc').open&&openId===wsid)renderDetail()}
+function wLive(){
+  const el=$('#wLive');if(!el)return;
+  const c=calc(w),id=WS[w.tp][w.step].id,dos=w.tp==='dos',R=h=>`<div class='res'>${h}</div>`;
+  const ex=R(`<span>Velocidade (correia ÷ tempo de volta): <b>${fmt(c.vel,4)} m/s</b></span><span>Fluxo calculado (1 h): <b>${fmt(c.Q)} t/h</b></span><span>Tempo de 2 voltas: <b>${fmt(c.T)} s</b></span><span>Totalizar em 2 voltas: <b class='bn'>${fmt(c.tons,4)} t</b></span>`);
+  const rows=a=>R(a.map(i=>`<span>Linha ${i%2+1}: fluxo encontrado <b>${fmt(c.f[i])} t/h</b> · erro <b>${fmt(c.e[i])} %</b></span>`).join(''));
+  let h='';
+  if(id==='dados'){h=R(`<span>Velocidade = correia ÷ tempo de volta: <b>${fmt(c.vel,4)} m/s</b></span>`);tcPaint()}
+  else if(id==='ei'){
+    h=dos?rows([0,1])+R(`<span>Erro inicial (média): <b>${fmt(c.ei)} %</b></span>`):ex+R(`<span>Erro inicial: <b>${fmt(c.ei)} %</b></span>`);
+    const ok=dentro(w.tp,c.ei),nb=$('#wBody [data-wn]');if(nb)nb.textContent=ok?'Ir para o encerramento':'Próximo';
+    if(isFinite(c.ei))h+=ok?`<div class='av g'><b>Erro inicial dentro da tolerância (${tolTxt(w.tp)}).</b><span>Não é necessário calibrar. Toque em “Ir para o encerramento” para emitir o relatório.</span></div>`:`<div class='av r'><b>Erro inicial fora da tolerância (${tolTxt(w.tp)}).</b><span>Siga com a calibração.</span></div>`;
+  }
+  else if(id==='vol')h=R(c.tvs.length===3?`<span>Tempo de volta (média de 3): <b class='bn'>${fmt(c.tv,3)} s</b></span><span>Diferença em relação ao C-02: <b>${fmt(c.dv)} %</b></span>`:`<span>Tempos registrados: <b>${c.tvs.length} de 3</b></span>`);
+  else if(id==='belt')h=R(`<span>Novo B-04 = novo D-06 ÷ comprimento da correia: <b class='bn'>${fmt(c.b04n)} pulsos/m</b></span>`);
+  else if(id==='chk')h=R(`<span>Variação do D-02: <b>${fmt(c.dd)} %</b></span>`);
+  else if(id==='ef'){
+    h=dos?rows([2,3])+R(`<span>Erro final (média): <b>${fmt(c.ef)} %</b></span>`):ex+R(`<span>Erro final: <b>${fmt(c.ef)} %</b></span>`);
+    if(isFinite(c.ef))h+=dentro(w.tp,c.ef)?`<div class='av g'><b>Erro final dentro da tolerância (${tolTxt(w.tp)}).</b></div>`:avForaFinal(msgFora(c),w.tp);
+  }
+  el.innerHTML=h;
+}
+function msgFora(c){
+  const s=scales.find(x=>x.id===wsid)||{};
+  return 'Olá. A '+(TPN[w.tp]||'balança').toLowerCase()+' '+(s.nome||'')+' ficou com erro final de '+fmt(c.ef)+' % na calibração de '+fd(w.data)+', fora da tolerância de '+tolTxt(w.tp)+'.'+(w.os?' O.S. '+w.os+'.':'')+' Executantes: '+(w.e1||'')+' e '+(w.e2||'')+'. Inspeção visual: ';
+}
+function wSum(){
+  const c=calc(w),dos=w.tp==='dos',m=dos?' (média)':'';
+  if(w.pulo){
+    const rp=[['Erro inicial',fmt(c.ei)+' %'+m],['Tolerância',tolTxt(w.tp)],['Calibração','Não necessária (sem ajuste)'],['Comprimento da correia',fmt(c.cor,4)+' m'],...(w.tc?[['Tamanho da correia (informado)',w.tc+' m']]:[]),['O.S.',w.os||'-'],['Executantes',w.e1+' e '+w.e2]];
+    if(!dos)rp.splice(3,0,['Tempo encontrado',fmt(pn(w.t1))+' s em '+fmt(c.T)+' s calculados']);
+    return `<div class='av g'><b>Erro inicial dentro do limite de tolerância (${tolTxt(w.tp)}).</b><span>A calibração não é necessária. Confirme o encerramento e finalize para emitir o relatório.</span></div><table class='sm'>${rp.map(r=>`<tr><td>${r[0]}</td><td>${esc(r[1])}</td></tr>`).join('')}</table><div><p class='small mut'>Confirme o encerramento:</p>${CK.map((t,i)=>`<label class='chk'><input type='checkbox' data-ck='${i}'${w.ck&&w.ck[i]?' checked':''}>${t}</label>`).join('')}</div><label class='small mut' style='display:flex;flex-direction:column;gap:3px'>Observações<textarea data-k='obs' maxlength='500'>${esc(w.obs)}</textarea></label>`;
+  }
+  const fo=fora(w.tp,c.ef);
+  const rw=[['Erro inicial',fmt(c.ei)+' %'+m],['Erro final',fmt(c.ef)+' %'+m],['Comprimento da correia',fmt(c.cor,4)+' m'],...(w.tc?[['Tamanho da correia (informado)',w.tc+' m']]:[]),['Tempo de volta aferido (média)',fmt(c.tv,3)+' s'],['Tempos de volta (3 tomadas)',[w.tv1,w.tv2,w.tv3].join(' / ')+' s'],['Novo B-04',fmt(c.b04n)+' pulsos/m'],['Novo D-06',w.d06n+' pulsos'],['Novo D-02',w.d02n+' ('+fmt(c.dd)+' %)'],['Taras',w.k1+' / '+w.k2],['O.S.',w.os||'-'],['Executantes',w.e1+' e '+w.e2]];
+  if(!dos)rw.splice(2,0,['Totalizar em 2 voltas',fmt(c.tons,4)+' t em '+fmt(c.T)+' s'],['Tempo encontrado inicial / final',fmt(pn(w.t1))+' s / '+fmt(pn(w.t2))+' s']);
+  const ck=CK.map((t,i)=>`<label class='chk'><input type='checkbox' data-ck='${i}'${w.ck&&w.ck[i]?' checked':''}>${t}</label>`).join('')+(fo?CKF.map((t,i)=>`<label class='chk'><input type='checkbox' data-cf='${i}'${w.cf&&w.cf[i]?' checked':''}>${t}</label>`).join(''):'');
+  return `${fo?avForaFinal(msgFora(c),w.tp):''}<table class='sm'>${rw.map(r=>`<tr><td>${r[0]}</td><td>${esc(r[1])}</td></tr>`).join('')}</table><div><p class='small mut'>Confirme o encerramento:</p>${ck}</div><label class='small mut' style='display:flex;flex-direction:column;gap:3px'>Observações<textarea data-k='obs' maxlength='500'${fo?" placeholder='Descreva o que foi visto na inspeção visual'":''}>${esc(w.obs)}</textarea></label>`;
+}
+function wRender(){
+  swStop(false);swLast=0;
+  const L=WS[w.tp],i=w.step,st=L[i],id=st.id,s=scales.find(x=>x.id===wsid);
+  let h=`<div class='sh'><div><h2>${esc(s.nome)}</h2><p class='stp'>Balança ${w.tp==='dos'?'dosadora':'de fluxo'} · ${st.t} · etapa ${i+1} de ${L.length}</p></div><button type='button' class='x' data-wx aria-label='Fechar'>×</button></div>`;
+  if(id!=='fim'){
+    const t=WI[id];
+    h+=`<p>${typeof t==='string'?t:t[w.tp]}</p>${id==='chk'?`<p class='hint'>Peso padrão: ${esc(w.c08)} kg. Lembre-se de colocar o peso na balança antes do check weight.</p>`:''}<div id='wLive' style='display:flex;flex-direction:column;gap:8px'></div><div class='f'>${id==='dados'?`<label>Data da calibração<input type='date' data-k='data' value='${esc(w.data)}'></label>`:''}${id==='vol'?'':st.f.map(inp).join('')}</div>${id==='dados'&&w.tp==='flu'&&tcOpen?tcCard():''}${id==='vol'?volCard():''}`;
+  }else h+=wSum();
+  h+=`<p class='small' id='wErr' style='color:var(--r)'></p><div class='wb'>${i>0?`<button class='btn' data-wb>Voltar</button>`:''}<button class='btn pri' data-wn>${id==='fim'?'Finalizar e salvar':'Próximo'}</button></div>`;
+  $('#wBody').innerHTML=h;wLive();swPaint();
+}
+function wNext(){
+  const L=WS[w.tp],i=w.step,id=L[i].id,bad=L[i].f.concat(id==='dados'?['data']:[]).find(k=>!okf(k));
+  if(bad){$('#wErr').textContent='Preencha corretamente: '+(FL[bad]?FL[bad][0]:'data').replace(/\.$/,'')+'.';return}
+  if(id==='fim'){
+    if(!(w.ck&&w.ck.filter(Boolean).length===CK.length)){$('#wErr').textContent='Marque todos os itens do encerramento.';return}
+    if(!w.pulo&&fora(w.tp,calc(w).ef)&&!(w.cf&&w.cf.filter(Boolean).length===CKF.length)){$('#wErr').textContent='Erro final fora da tolerância: marque a inspeção visual e a comunicação ao inspetor.';return}
+    wFinish();return;
+  }
+  if(id==='ei'){
+    if(dentro(w.tp,calc(w).ei)){w.pulo=1;w.step=L.findIndex(x=>x.id==='fim');wSave();wRender();$('#dWiz').scrollTop=0;return}
+    delete w.pulo;
+  }
+  if(id==='vol')w.tv=String(+calc(w).tv.toFixed(3)).replace('.',',');
+  w.step++;wSave();wRender();$('#dWiz').scrollTop=0;
+}
+function wFinish(){
+  const s=clone(scales.find(x=>x.id===wsid)),id=uuid(),rel=clone(w),pu=!!w.pulo;
+  delete rel.step;delete rel.v;
+  if(pu){
+    /* sem calibração: a balança fica como foi encontrada, então o erro final é o próprio erro inicial */
+    ['tv','tv1','tv2','tv3','d06n','k1','k2','d02n','cf'].forEach(k=>delete rel[k]);
+    if(rel.tp==='dos'){rel.p3=rel.p1;rel.s3=rel.s1;rel.p4=rel.p2;rel.s4=rel.s2}else rel.t2=rel.t1;
+  }
+  const c=calc(rel),fo=!pu&&fora(rel.tp,c.ef);
+  if(!fo)delete rel.cf;
+  rel.res=clone(pu?{cor:c.cor,vel:c.vel,Q:c.Q,T:c.T,tons:c.tons,e:c.e,f:c.f}:{cor:c.cor,vel:c.vel,Q:c.Q,T:c.T,tons:c.tons,tv:c.tv,b04n:c.b04n,dd:c.dd,dv:c.dv,e:c.e,f:c.f});
+  s.cal=s.cal||[];
+  s.cal.push({id,data:w.data,os:(w.os||'').trim(),ei:+c.ei.toFixed(4),ef:+c.ef.toFixed(4),e1:w.e1.trim(),e2:w.e2.trim(),obs:(w.obs||'').trim(),rel});
+  dropDraft(s.id);wDone=true;wLast=id;const pr=addCal(s,s.cal[s.cal.length-1]);
+  const nc=s.cal[s.cal.length-1],tl=tolTxt(rel.tp);
+  const av=pu?`<div class='av g'><b>Erro inicial dentro da tolerância (${tl}).</b><span>Calibração não necessária.</span></div>`:fo?`<div class='av r'><b>Erro final fora da tolerância (${tl}).</b><span>A balança fica com o farol vermelho. Refaça a inspeção visual e comunique o inspetor pelo WhatsApp.</span></div>`:`<div class='av g'><b>Erro final dentro da tolerância (${tl}).</b></div>`;
+  $('#wBody').innerHTML=`<div class='sh'><h2>${pu?'Relatório salvo':'Calibração salva'}</h2><button type='button' class='x' data-wclose aria-label='Fechar'>×</button></div><div class='res'><span>Erro inicial: <b>${fmt(c.ei)} %</b></span>${pu?'<span>Calibração: <b>não necessária</b></span>':`<span>Erro final: <b>${fmt(c.ef)} %</b></span>`}</div>${av}<p class='small mut' id='wEnv'>Salvando na nuvem…</p>${envioBox(s,nc,fo)}<div class='wb'><button class='btn' data-wpdf>Salvar PDF</button><button class='btn' data-wclose>Fechar</button></div>`;
+  pr.then(r=>{const e=$('#wEnv');if(e)e.textContent=msgEnvio(r)});
+}
+$('#wBody').addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.ck!=null){w.ck=w.ck||[];w.ck[+t.dataset.ck]=t.checked;return}
+  if(t.dataset.cf!=null){w.cf=w.cf||[];w.cf[+t.dataset.cf]=t.checked;return}
+  const k=t.dataset.k;if(k){w[k]=t.value;wLive();if(k==='tcd'||k==='tct'||k==='tcv')tcPaint();if(/^tv[123]$/.test(k))swPaint();const er=$('#wErr');if(er)er.textContent=''}
+});
+$('#wBody').addEventListener('click',e=>{
+  const t=e.target;
+  const sb=t.closest('[data-sw]');if(sb){e.preventDefault();const k=sb.dataset.sw;if(sw&&sw.k===k)swStop(true);else swStart(k);return}
+  if(t.closest('[data-tcopen]')){tcOpen=!tcOpen;wRender();if(tcOpen){const c=$('#tcCard');if(c)c.scrollIntoView({behavior:'smooth',block:'start'})}return}
+  if(t.closest('[data-tcuse]')){const v=tcCalc(w);if(v>0){w.tc=fmt(v,2).replace(/\./g,'');tcOpen=false;wSave();wRender();const i=$('#wBody [data-k=tc]');if(i){i.scrollIntoView({block:'center'});i.focus()}}return}
+  if(t.closest('[data-swclr]')){['tv1','tv2','tv3'].forEach(q=>{w[q]='';const i=$('#wBody [data-k='+q+']');if(i)i.value=''});swLast=0;swPaint();wLive();return}
+  if(t.closest('[data-wx],[data-wclose]')){$('#dWiz').close();return}
+  if(t.closest('[data-wpdf]')){const s=scales.find(x=>x.id===wsid);savePdf(s,s.cal.find(x=>x.id===wLast));return}
+  if(t.closest('[data-wshare]')){const s=scales.find(x=>x.id===wsid);enviarPdf(s,s.cal.find(x=>x.id===wLast));return}
+  if(t.closest('[data-wb]')){const L=WS[w.tp];w.step=w.pulo&&L[w.step].id==='fim'?L.findIndex(x=>x.id==='ei'):w.step-1;wRender();$('#dWiz').scrollTop=0;return}
+  if(t.closest('[data-wn]'))wNext();
+});
+$('#dWiz').addEventListener('close',()=>{swStop(false);if(w&&!wDone&&Object.keys(w).length>4)wSave();w=null});
+
+function buildPdf(s,c){
+  if(!window.jspdf){note('A biblioteca de PDF não carregou. Verifique a internet e tente de novo.');return null}
+  const full=!!c.rel,r=c.rel||{tp:s.tipo};
+  const dos=r.tp==='dos',x=r.res||{},d=new window.jspdf.jsPDF({unit:'mm',format:'a4'});let y=18;
+  const pg=()=>{if(y>272){d.addPage();y=18}};
+  const H=t=>{pg();y+=3;d.setFont('helvetica','bold');d.setFontSize(12);d.text(t,15,y);y+=2;d.line(15,y,195,y);y+=6};
+  const R=(a,b)=>{pg();d.setFontSize(10.5);d.setFont('helvetica','bold');d.text(a,15,y);d.setFont('helvetica','normal');d.text(String(b),95,y);y+=6};
+  const S=(t,ok)=>{d.setFontSize(10.5);d.setFont('helvetica','bold');d.setTextColor.apply(d,ok?[35,132,74]:[201,47,39]);d.splitTextToSize(t,180).forEach(l=>{pg();d.text(l,15,y);y+=5.5});d.setTextColor(0,0,0);y+=1};
+  const lin=a=>a.forEach(i=>{R('Linha '+(i%2+1)+' - pedido / tempo de volta',r['p'+(i+1)]+' t/h / '+r['s'+(i+1)]+' s');R('   fluxo encontrado / erro',fmt(x.f[i])+' t/h / '+fmt(x.e[i])+' %')});
+  d.setFont('helvetica','bold');d.setFontSize(16);d.text('Relatório de calibração - Balança'+(dos?' dosadora':r.tp==='flu'?' de fluxo':''),15,y);y+=4;
+  H('Identificação');R('Balança',s.nome);R('Local',s.local||'-');R('Data',fd(c.data));R('O.S.',osDe(c)||'-');R('Executantes',c.e1+' e '+c.e2);
+  const tp=r.tp||s.tipo,pu=!!r.pulo,mm=dos&&full?' (média)':'';
+  H('Resultado');R('Erro inicial'+mm,fmt(c.ei)+' %');
+  if(pu)R('Calibração','Não necessária (sem ajuste)');else R('Erro final'+mm,fmt(c.ef)+' %');
+  if(TOL[tp])R('Tolerância',tolTxt(tp));
+  if(!full)R('Tipo de registro','Lançamento manual');
+  if(TOL[tp]){
+    if(pu)S('Erro inicial dentro do limite de tolerância. Calibração não necessária.',1);
+    else if(fora(tp,c.ef)){S('Erro final fora do limite de tolerância. Farol da balança mantido em vermelho até nova calibração dentro da tolerância.',0);if(r.cf)CKF.forEach((t,i)=>R(t,r.cf[i]?'Sim':'-'))}
+    else S('Erro final dentro do limite de tolerância.',1);
+  }
+  if(full){
+  H('Coleta de parâmetros');R('B-04 - Pulsos por metro',r.b04);R('C-02 - Tempo de volta (s)',r.c02);R('C-05 - Comprimento da mesa (m)',r.c05);R('C-08 - Peso padrão (kg)',r.c08);R('D-02 - Fator de correção',r.d02);R('D-06 - Pulsos por volta',r.d06);R('Tamanho da correia (D-06 / B-04)',fmt(x.cor!=null?x.cor:pn(r.cor),4)+' m');if(r.tc){R('Tamanho da correia (informado)',r.tc+' m');if(pn(r.tct)>0&&pn(r.tcv)>0&&pn(r.tcd)>0){R('Medição: distância marcada',r.tcd+' m em '+r.tct+' s');R('Medição: uma volta completa',r.tcv+' s')}}
+  H('Cálculo');R('Velocidade (correia / tempo de volta)',fmt(x.vel!=null?x.vel:pn(r.vel),4)+' m/s');if(!dos)R('Fluxo calculado (1 hora)',fmt(x.Q)+' t/h');
+  if(!dos){R('Tempo de 2 voltas',fmt(x.T)+' s');R('Totalização esperada',fmt(x.tons,4)+' t')}
+  H('Erro inicial');
+  if(dos){lin([0,1]);R('Erro inicial (média)',fmt(c.ei)+' %')}else{R('Tempo calculado / encontrado',fmt(x.T)+' s / '+r.t1+' s');R('Erro inicial',fmt(c.ei)+' %')}
+  if(!pu){
+  H('Calibração');
+  if(r.tv1){R('Tempo de volta - 3 tomadas',r.tv1+' / '+r.tv2+' / '+r.tv3+' s');R('Tempo de volta aferido (média)',fmt(x.tv!=null?x.tv:pn(r.tv),3)+' s');if(x.dv!=null&&isFinite(x.dv))R('Diferença em relação ao C-02',fmt(x.dv)+' %')}
+  else if(r.tv)R('Tempo de volta aferido',r.tv+' s');
+  R('Novo D-06 (Input Belt)',r.d06n);R('Novo B-04',fmt(x.b04n)+' pulsos/m');R('Tara 01',r.k1);R('Tara 02',r.k2);R('Novo D-02 (Check weight)',r.d02n);R('Variação do D-02',fmt(x.dd)+' %');
+  H('Erro final');
+  if(dos){lin([2,3]);R('Erro final (média)',fmt(c.ef)+' %')}else{R('Tempo calculado / encontrado',fmt(x.T)+' s / '+r.t2+' s');R('Erro final',fmt(c.ef)+' %')}
+  }
+  if(r.ck){H('Encerramento');CK.forEach((t,i)=>R(t,r.ck[i]?'OK':'-'))}
+  }
+  if(c.obs){H('Observações');d.setFont('helvetica','normal');d.setFontSize(10.5);d.splitTextToSize(c.obs,180).forEach(t=>{pg();d.text(t,15,y);y+=5.5})}
+  y+=6;pg();d.setFont('helvetica','normal');d.setFontSize(8.5);
+  d.text('Velocidade = comprimento da correia / tempo de volta. Fluxo = (velocidade x peso padrão x 3,6) / comprimento da mesa.',15,y);y+=4.5;
+  d.text(dos?'Erro (%) = (fluxo encontrado / fluxo pedido - 1) x 100.':'Erro (%) = (tempo encontrado / tempo pedido - 1) x 100.',15,y);y+=4.5;
+  const pf=perfil||{};if(pf.nome||pf.empresa)d.text('Responsável pela conta: '+[pf.nome,pf.cargo,pf.empresa].filter(Boolean).join(' - '),15,y);
+  return{d,name:'calibracao-'+s.nome.replace(/[^\w-]+/g,'_')+'-'+c.data+'.pdf'};
+}
+function savePdf(s,c){const p=c&&buildPdf(s,c);if(p)saveFile(p.name,p.d.output('blob'))}
+
+/* ===== Registro local e reconciliação com a nuvem ===== */
+function applyOp(list,o){
+  const d=o.data||{};let s;
+  switch(o.action){
+    case 'saveScale':s=list.find(x=>x.id===d.scale.id);if(s)Object.assign(s,d.scale);else list.push(Object.assign({pm:'',po:'',cal:[]},d.scale));break;
+    case 'setPend':s=list.find(x=>x.id===d.balancaId);if(s){s.pm=d.pm;s.po=d.po}break;
+    case 'addCal':s=list.find(x=>x.id===d.balancaId);if(s&&!(s.cal||[]).some(c=>c.id===d.cal.id)){s.cal=s.cal||[];s.cal.push(d.cal)}break;
+    case 'delCal':list.forEach(x=>{x.cal=(x.cal||[]).filter(c=>c.id!==d.id)});break;
+    case 'delScale':return list.filter(x=>x.id!==d.id);
+    case 'import':(d.scales||[]).forEach(b=>{if(!b||!b.id)return;let t=list.find(x=>x.id===b.id);if(!t){t=Object.assign({},b,{cal:[]});list.push(t)}(b.cal||[]).forEach(c=>{if(!t.cal.some(x=>x.id===c.id))t.cal.push(c)})});break;
+  }
+  return list;
+}
+/* corrige registros que a planilha em português converteu (datas e números com ponto) */
+function normCal(c){
+  if(c.data&&!/^\d{4}-\d\d-\d\d$/.test(c.data)){const t=Date.parse(c.data);if(!isNaN(t))c.data=iso(new Date(t))}
+  const r=c.rel,x=r&&r.res,n=v=>parseFloat(String(v==null?'':v).replace(',','.'));
+  if(x&&r.tp==='dos'&&x.e&&x.e.length===4){c.ei=(x.e[0]+x.e[1])/2;c.ef=(x.e[2]+x.e[3])/2}
+  else if(x&&r.tp==='flu'&&x.T&&n(r.t1)>0&&n(r.t2)>0){c.ei=(n(r.t1)/x.T-1)*100;c.ef=(n(r.t2)/x.T-1)*100}
+  return c;
+}
+function normBase(l){(l||[]).forEach(s=>(s.cal||[]).forEach(normCal));return l||[]}
+function recompute(){scales=getOut().reduce((l,o)=>applyOp(l,o),clone(base))}
+
+/* ===== Relatório: WhatsApp e e-mail pelo próprio celular ===== */
+const TPN={dos:'Balança dosadora',flu:'Balança de fluxo'};
+const avForaFinal=(msg,tp)=>`<div class='av r'><b>Erro final fora da tolerância${tp?' ('+tolTxt(tp)+')':''}.</b><span>Faça novamente a inspeção visual da balança e comunique o responsável pelo WhatsApp. O relatório pode ser registrado, mas a balança fica com o farol vermelho até uma nova calibração dentro da tolerância.</span><a class='btn pri' href='${waHref(msg)}' target='_blank' rel='noopener'>Comunicar pelo WhatsApp</a></div>`;
+const CKF=['Inspeção visual da balança refeita','Responsável comunicado pelo WhatsApp'];
+function sitTxt(s,c){
+  const tp=(c.rel&&c.rel.tp)||s.tipo;if(!TOL[tp])return'';
+  if(pulou(c))return'dentro da tolerância ('+tolTxt(tp)+'), calibração não necessária';
+  return(fora(tp,c.ef)?'FORA da tolerância':'dentro da tolerância')+' ('+tolTxt(tp)+')';
+}
+function txtCurto(s,c){
+  const st=sitTxt(s,c);
+  return (TPN[s.tipo]||'Balança')+' '+s.nome+': calibração de '+fd(c.data)+'. '+(pulou(c)?'Erro inicial '+fmt(c.ei)+'%, '+st+'.':'Erro inicial '+fmt(c.ei)+'%, final '+fmt(c.ef)+'%'+(st?', '+st:'')+'.')+(osDe(c)?' O.S. '+osDe(c)+'.':'')+' Executantes: '+c.e1+' e '+c.e2+'.';
+}
+function resumoLongo(s,c){
+  const L=[(TPN[s.tipo]||'Balança')+': '+s.nome,s.local?'Local: '+s.local:'','Data: '+fd(c.data),'O.S.: '+(osDe(c)||'-'),'Executantes: '+c.e1+' e '+c.e2,'Erro inicial: '+fmt(c.ei)+' %',pulou(c)?'Calibração: não necessária (sem ajuste)':'Erro final: '+fmt(c.ef)+' %',sitTxt(s,c)?'Situação: '+sitTxt(s,c):'',c.obs?'Observações: '+c.obs:''];
+  return L.filter(x=>x!=='').join('\n');
+}
+const assunto=(s,c)=>'Calibração '+s.nome+' - '+fd(c.data)+(pulou(c)?' (dentro da tolerância, sem ajuste)':fora((c.rel&&c.rel.tp)||s.tipo,c.ef)?' - FORA DA TOLERÂNCIA':'');
+function enviarPdf(s,c){const p=buildPdf(s,c);if(p)shareFile(p.name,p.d.output('blob'),txtCurto(s,c)).catch(e=>note('Não foi possível abrir o compartilhamento: '+((e&&e.message)||e)))}
+function envioBox(s,c,fo){
+  const p=perfil||{},sem=!p.whatsapp&&!p.email_relatorio;
+  return `<div class='box' style='display:flex;flex-direction:column;gap:10px'><b>Enviar o relatório</b>
+  <button class='btn pri' data-wshare>Enviar PDF (WhatsApp, e-mail…)</button>
+  <div class='wb'><a class='btn${fo?' pri':''}' href='${waHref(txtCurto(s,c))}' target='_blank' rel='noopener'>${fo?'Comunicar no WhatsApp':'Resumo no WhatsApp'}</a><a class='btn' href='${mailHref(assunto(s,c),resumoLongo(s,c)+'\n\nO relatório em PDF segue em anexo.')}'>Resumo por e-mail</a></div>
+  <p class='small mut'>${sem?'Cadastre o e-mail e o WhatsApp em “Meu perfil e relatórios” para o resumo já sair com o destinatário.':`Resumo vai para ${[p.whatsapp?'o WhatsApp '+esc(p.whatsapp):'',p.email_relatorio?esc(p.email_relatorio):''].filter(Boolean).join(' e ')}. O PDF abre o compartilhamento do celular: escolha o WhatsApp ou o e-mail.`}</p></div>`;
+}
+function addCal(s,c){return op('addCal',{balancaId:s.id,tipo:s.tipo,cal:c})}
+const msgEnvio=r=>({ok:'Calibração salva na nuvem.',fila:'Sem internet: a calibração ficou guardada no aparelho e vai para a nuvem quando a internet voltar.',erro:'Não foi possível salvar na nuvem.','sem-config':'Entre na sua conta para salvar.'}[r]||'');
+
+let unlocked=true;function askPw(fn){fn()}function auth(fn){fn()}
+/* ===== Exportar tudo (CSV) ===== */
+async function exportCsv(){
+  const T={dos:'Dosadora',flu:'Fluxo'},S={g:'Em dia',y:'Atenção',r:'Vencida',t:'Fora da tolerância'};
+  const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"',n=v=>v==null||v===''?'':String(v).replace('.',',');
+  const rows=[['Tipo','Balança','Local','Situação atual','Data da calibração','O.S.','Erro inicial (%)','Erro final (%)','Resultado','Executante 1','Executante 2','Observações','Novo B04','Novo D06','Novo D02','Tara 01','Tara 02','Pendências mecânicas','Pendências operacionais']];
+  scales.slice().sort((a,b)=>a.nome.localeCompare(b.nome)).forEach(s=>{
+    const base=[T[s.tipo]||'Sem categoria',s.nome,s.local||'',S[stat(s).q]],pend=[s.pm||'',s.po||''],cs=sorted(s,-1);
+    if(!cs.length)rows.push([...base,...Array(13).fill(''),...pend]);
+    cs.forEach(c=>{const r=c.rel||{},x=r.res||{};const tp=r.tp||s.tipo,res=!TOL[tp]?'':pulou(c)?'Calibração não necessária':fora(tp,c.ef)?'Erro final fora da tolerância':'Dentro da tolerância';rows.push([...base,fd(c.data),osDe(c),n(c.ei),n(c.ef),res,c.e1,c.e2,c.obs||'',x.b04n!=null?n(+x.b04n.toFixed(4)):'',n(r.d06n),n(r.d02n),r.k1||'',r.k2||'',...pend])});
+  });
+  const csv='\ufeff'+rows.map(r=>r.map(q).join(';')).join('\r\n');
+  saveFile('calibracao-balancas-'+iso(new Date())+'.csv',new Blob([csv],{type:'text/csv;charset=utf-8'}));
+}
+$('#expBtn').onclick=exportCsv;
+$('#bkBtn').onclick=()=>saveFile('backup-balancas-'+iso(new Date())+'.json',new Blob([JSON.stringify({v:1,scales},null,1)],{type:'application/json'}));
+$('#rsBtn').onclick=()=>$('#rsFile').click();
+$('#rsFile').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  let j;try{j=JSON.parse(await f.text());if(!Array.isArray(j.scales))throw 0}catch(x){note('Arquivo de backup inválido.');return}
+  const ok=j.scales.filter(b=>b&&['dos','flu'].includes(b.tipo));if(!ok.length){note('O backup não tem balanças dosadoras ou de fluxo.');return}
+  if(confirm('Importar '+ok.length+' balança(s) do backup para a sua conta?'))op('import',{scales:prepImport(ok)}).then(r=>note(r==='ok'?'Backup importado.':msgEnvio(r)));
+};
+$('#perfBtn').onclick=()=>openPerf(false);
+$('#outBtn').onclick=sair;
+setInterval(render,36e5);
+
+/* ===== Início ===== */
+(function(){
+  setRole();
+  if(ses){const c=ls.get(CACHE,null);if(c&&c.uid===uid()){base=normBase(c.base);lastSync=c.lastSync||null}}
+  recompute();render();setSync(false);
+  if(!ses)showAuth();else startSession(false);
+  setInterval(()=>{if(ses&&document.visibilityState==='visible')sync()},60000);
+  document.addEventListener('visibilitychange',()=>{if(ses&&document.visibilityState==='visible')sync()});
+  window.addEventListener('online',()=>{if(ses)sync()});
+  $('#sync').onclick=()=>sync();
+})();
+if(!NATIVE&&'serviceWorker' in navigator&&location.protocol.indexOf('http')===0)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>

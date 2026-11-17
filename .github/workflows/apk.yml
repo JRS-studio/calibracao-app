@@ -1,0 +1,79 @@
+name: Gerar APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Instalar dependências
+        run: |
+          npm install
+          npm run prep
+
+      - name: Criar projeto Android
+        run: |
+          npx cap add android
+          npx @capacitor/assets generate --android --iconBackgroundColor '#1f5c8b' --splashBackgroundColor '#1f5c8b'
+          npx cap sync android
+
+      - name: Versão
+        run: |
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
+
+      - name: Compilar
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Assinar
+        env:
+          KS_B64: ${{ secrets.KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          IN=android/app/build/outputs/apk/release/app-release-unsigned.apk
+          $BT/zipalign -f -p 4 $IN alinhado.apk
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > chave.jks
+          else
+            echo "::warning::Sem os segredos KEYSTORE_BASE64 e KEYSTORE_PASSWORD: APK assinado com chave provisória"
+            KS_PASS=temporaria123
+            keytool -genkeypair -keystore chave.jks -storepass $KS_PASS -keypass $KS_PASS -alias app -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Calibracao"
+          fi
+          $BT/apksigner sign --ks chave.jks --ks-pass env:KS_PASS --ks-key-alias app --out calibracao-balancas.apk alinhado.apk
+          $BT/apksigner verify calibracao-balancas.apk
+          rm -f chave.jks
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: calibracao-balancas-apk
+          path: calibracao-balancas.apk
+
+      - name: Publicar na página de downloads
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Calibração de balanças 1.0.${{ github.run_number }}
+          make_latest: true
+          files: calibracao-balancas.apk
+          body: |
+            Baixe o arquivo **calibracao-balancas.apk** abaixo e abra no celular Android.
+            Se o Android pedir, permita instalar apps desta fonte.

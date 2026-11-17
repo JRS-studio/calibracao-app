@@ -1,0 +1,6 @@
+{
+  "appId": "app.calibracao.balancas",
+  "appName": "Calibração de balanças",
+  "webDir": "www",
+  "android": { "allowMixedContent": false }
+}

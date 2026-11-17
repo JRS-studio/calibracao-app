@@ -1,0 +1,20 @@
+{
+  "name": "calibracao-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Calibração de balanças dosadoras e de fluxo - app Android",
+  "scripts": {
+    "prep": "cp node_modules/jspdf/dist/jspdf.umd.min.js www/"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/filesystem": "^7.0.0",
+    "@capacitor/share": "^7.0.0",
+    "jspdf": "2.5.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0"
+  }
+}
