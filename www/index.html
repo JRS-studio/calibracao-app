@@ -942,7 +942,7 @@ function buildPdf(s,c){
   if(r.pr==='np'){d.text('Total calculado = (velocidade nominal x peso padrão x tempo de volta) / comprimento da mesa.',15,y);y+=4.5;d.text('Erro (%) = (total inserido - total calculado) / total calculado x 100.',15,y);if(!pu){y+=4.5;d.text('Erro final: total calculado = (velocidade nova x peso padrão x tempo de volta novo) / comprimento da mesa, comparado com a última totalização.',15,y)}}else{
   d.text('Velocidade = comprimento da correia / tempo de volta. Fluxo = (velocidade x peso padrão x 3,6) / comprimento da mesa.',15,y);y+=4.5;
   d.text(dos?'Erro (%) = (fluxo encontrado / fluxo pedido - 1) x 100.':'Erro (%) = (tempo encontrado / tempo pedido - 1) x 100.',15,y)}
-  if(d.getNumberOfPages&&d.setPage){const np=d.getNumberOfPages();for(let i=1;i<=np;i++){d.setPage(i);d.setFont('helvetica','normal');d.setFontSize(8);d.setTextColor(120,128,136);d.text('App Calibração de balanças - desenvolvido por Jeferson Rodrigo dos Santos'+(np>1?'   |   página '+i+' de '+np:''),15,290)}d.setTextColor(0,0,0)}
+  if(d.getNumberOfPages&&d.setPage){const np=d.getNumberOfPages();for(let i=1;i<=np;i++){d.setPage(i);d.setFont('helvetica','normal');d.setFontSize(7.5);d.setTextColor(120,128,136);d.setDrawColor(200,205,210);d.line(15,282,195,282);d.text('Relatório gerado pelo app Calibração de balanças - Desenvolvedor do app: Jeferson Rodrigo dos Santos'+(np>1?'  -  Página '+i+' de '+np:''),15,286);d.text('A calibração e os dados deste relatório são de responsabilidade dos executantes e de quem o emitiu.',15,290)}d.setTextColor(0,0,0);d.setDrawColor(0,0,0)}
   return{d,name:'calibracao-'+s.nome.replace(/[^\w-]+/g,'_')+'-'+c.data+'.pdf'};
 }
 function savePdf(s,c){const p=c&&buildPdf(s,c);if(p)saveFile(p.name,p.d.output('blob'))}
